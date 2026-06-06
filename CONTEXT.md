@@ -1,0 +1,142 @@
+# AI Business Brain — Project Context
+
+> **For Claude Code.** Read this at the start of every session. It is the living record of what has been built, why decisions were made, and what comes next. Update the progress tracker and decision log as each issue is completed.
+
+---
+
+## What this project is
+
+A single-tenant AI memory system sold as a boilerplate by an AI agency. One Railway + one Supabase deployment per business client (10–70 people). It captures organisational knowledge that lives in people's heads — decisions, client preferences, lessons, SOPs — and makes it queryable by humans and agents.
+
+**The PRD is the single source of truth.** It lives at `ai-business-brain-prd.md`. Build exactly what it specifies. Do not add features or abstractions beyond what is there.
+
+---
+
+## Environment
+
+| Thing | Value |
+|---|---|
+| Supabase project | `ubhqrxkibheekpkocwbh` (region: Sydney) |
+| Supabase URL | `https://ubhqrxkibheekpkocwbh.supabase.co` |
+| GitHub repo | `Sweeite/AI-Business-Brain` |
+| Railway | Not yet deployed — Dockerfiles and `railway.toml` are ready |
+| Branch | `main` |
+
+**CLI state:** Supabase CLI is linked (`supabase link` already run). You can push migrations with `supabase db push` and query the remote with `supabase db query --linked "..."` immediately.
+
+**Env files:**
+- `packages/app/.env.local` — populated, do not overwrite
+- `packages/worker/.env` — populated, do not overwrite
+
+---
+
+## Monorepo structure
+
+```
+packages/
+  app/     → Next.js 14 (App Router). Pages, UI, API routes, webhook receivers.
+  worker/  → Node.js + pg-boss. Job handlers, cron, connector sync.
+  core/    → Shared library. DB types, Supabase client factory, Zod schemas.
+             Imported as TypeScript source — never compiled to dist for consumption.
+             Next.js transpiles it via transpilePackages. Worker uses tsc.
+supabase/
+  migrations/   → All DB migrations. One file per change. Always idempotent.
+  config.toml   → Supabase CLI config (major_version: 17).
+```
+
+**Package names:** `@brain/app`, `@brain/worker`, `@brain/core`
+
+**Key commands:**
+```bash
+pnpm install                          # install all workspace deps
+pnpm --filter @brain/core typecheck   # typecheck core
+pnpm --filter @brain/app typecheck    # typecheck app
+pnpm --filter @brain/worker typecheck # typecheck worker
+pnpm --filter @brain/app dev          # run Next.js dev server
+pnpm --filter @brain/worker dev       # run worker with tsx watch
+supabase db push                      # push pending migrations to remote
+supabase db query --linked "<sql>"    # run a query against the remote DB
+supabase migration list               # check local vs remote migration state
+```
+
+---
+
+## Architecture decisions (non-obvious things)
+
+**System user has no FK to auth.users.**
+The system user (`id: 00000000-0000-0000-0000-000000000001`, `email: system@internal`) is seeded directly into `public.users` without a corresponding `auth.users` row. A FK constraint linking real users to `auth.users` is added in Issue #2 via an auth trigger. Do not add that FK to the initial migration.
+
+**core is TypeScript source, not compiled output.**
+`packages/core` has no `main` or `exports` in its `package.json`. Both consuming packages resolve it via `paths` in their `tsconfig.json` pointing at `../core/src/index.ts`. This means no build step for core — changes are picked up immediately.
+
+**CHECK constraints, not ENUM types.**
+All enum-like columns use `CHECK (col IN (...))` not PostgreSQL `ENUM` types. Easier to evolve without `ALTER TYPE` complexity.
+
+**Migration idempotency pattern.**
+All DDL: `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, `CREATE EXTENSION IF NOT EXISTS`.
+All seed inserts: `INSERT INTO ... ON CONFLICT (id) DO NOTHING` or `ON CONFLICT (key) DO NOTHING` for system_config.
+
+**Tool seed is in a separate migration (`20260606000001_seed_tools.sql`).**
+The initial migration (`20260605000000`) was already applied on the remote from a previous session before this codebase existed. Because the timestamp matched, Supabase didn't re-run it, so the tools seed (which was new) didn't execute. A second migration was created to apply it cleanly.
+
+**Secrets never in code.**
+OAuth tokens stored in Supabase Vault. The `connections` table holds a `credential_ref` (a Vault secret UUID), never the raw token. The worker retrieves secrets via the `get_decrypted_credential(connection_id)` SECURITY DEFINER RPC function — never directly.
+
+**Provenance labels on every answer.**
+Every agent response must tag where each piece came from: "I know this" (memory), "This is live" (SoR), "Couldn't reach source", or "General inference". The brain abstains rather than confabulates — zero results below the relevance floor returns an explicit abstention, logged to `miss_log`.
+
+**Config as data — hard requirement.**
+Agent system prompts, retrieval thresholds, decay settings, capture rules — all stored in the DB (`agent_configs`, `system_config`). Nothing that the self-improvement loop needs to modify can be hardcoded.
+
+---
+
+## Database seed reference
+
+| Table | Seeded rows | Key IDs |
+|---|---|---|
+| `roles` | 4 | Owner: `10000000-…-0001`, Operator: `…-0002`, Manager: `…-0003`, Member: `…-0004` |
+| `users` | 1 | System user: `00000000-0000-0000-0000-000000000001` |
+| `system_config` | 10 | retrieval_min_relevance, retrieval_max_results, memory_proposal_min_confidence, decay_min_utility_score, decay_min_age_days, decay_cron_schedule, consolidation_last_run_at, consolidation_dedup_similarity_threshold, consolidation_cron_schedule, chunk_ttl_days |
+| `agent_configs` | 4 | gate3_classifier: `20000000-…-0001`, gate3_chunk_classifier: `…-0002`, consolidation: `…-0003`, improvement_analysis: `…-0004` |
+| `tools` | 9 | search_memory, fetch_gmail, fetch_drive_file, search_drive, propose_memory, create_gmail_draft, send_email, create_drive_file, update_drive_file (`30000000-…-0001` through `…-0009`) |
+
+---
+
+## Build sequence progress
+
+Issues map to PRD §15. Complete them in order — each depends on the one before.
+
+| # | Issue | Status | Notes |
+|---|---|---|---|
+| 1 | Monorepo scaffold + full DB migration | ✅ Done | commit `1225c59` |
+| 2 | Auth & user provisioning | ⬜ Next | Google OAuth via Supabase Auth, user auto-provisioning trigger, protected routes |
+| 3 | Supabase Vault credential pattern | ⬜ | `get_decrypted_credential` RPC already in migration — issue builds the worker wrapper |
+| 4 | `executeAgent()` core + audit log + cost tracking | ⬜ | Goes in `packages/core` |
+| 5 | Memory store: CRUD, Voyage embeddings, hybrid retrieval, permission filtering | ⬜ | |
+| 6 | pg-boss worker service setup | ⬜ | Register system cron jobs |
+| 7 | Memory proposal drain pipeline | ⬜ | |
+| 8 | Gmail connector | ⬜ | OAuth, Vault, history sync, push webhook, routing decision tree |
+| 9 | Google Drive connector | ⬜ | Same pattern as Gmail + webhook expiry renewal |
+| 10 | Query interface — Dashboard 1 | ⬜ | |
+| 11 | RBAC + Mission Control — Dashboard 11 | ⬜ | |
+| 12 | Memory Inspector — Dashboard 2 | ⬜ | |
+| 13 | Proactive Builder — Dashboard 5 | ⬜ | |
+| 14 | Agent Activity + Full Traces — Dashboard 4 | ⬜ | |
+| 15 | Self-improvement loop + dashboard — Dashboard 6 | ⬜ | |
+| 16 | Memory consolidation cron | ⬜ | Episodic → semantic, watermark guard, near-duplicate check |
+| 17 | Memory decay cron | ⬜ | Utility score formula + invalidation |
+| 18 | Ingestion + Queue Health — Dashboard 3 | ⬜ | |
+| 19 | Cost Monitor — Dashboard 7 | ⬜ | |
+| 20 | Quality Monitor — Dashboard 8 | ⬜ | |
+| 21 | System Health + Audit Log + Connector Management — Dashboards 9, 10, 12 | ⬜ | |
+
+---
+
+## How to start a new session
+
+1. Read this file.
+2. Check the build sequence table above — find the first ⬜ issue.
+3. Run `gh issue view <number>` to read the full acceptance criteria.
+4. Run `supabase migration list` to confirm migration state is clean.
+5. Build the issue, push a migration if needed (`supabase db push`), typecheck all packages, commit, close the issue.
+6. Update the progress table above (change ⬜ to ✅, add the commit hash).
