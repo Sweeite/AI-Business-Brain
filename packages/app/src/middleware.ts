@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+        setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
@@ -23,14 +23,12 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  // Refresh the session — must call getUser() not getSession() per Supabase SSR docs
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // IMPORTANT: getUser() must be called to refresh the session cookie.
+  // Do not remove this — it keeps the session alive between requests.
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
 
-  // Public routes — no auth required
   const isPublic =
     pathname.startsWith('/login') ||
     pathname.startsWith('/auth/') ||
@@ -43,18 +41,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && pathname.startsWith('/login')) {
+  if (user && pathname === '/login') {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
   }
 
-  // Expose pathname to server components via request header
   supabaseResponse.headers.set('x-pathname', pathname)
-
   return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    /*
+     * Match all paths except static files and images.
+     * Must use this format — Next.js 14 does not support complex regex in matcher.
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }
