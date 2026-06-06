@@ -1,4 +1,5 @@
 import { getNavItems, type NavItem } from '@brain/core'
+import { signOut } from '@/lib/auth-actions'
 
 interface Props {
   roleName: string
@@ -38,7 +39,7 @@ export function Nav({ roleName, currentPath, userEmail }: Props) {
 
       <div style={styles.footer}>
         <div style={styles.userEmail}>{userEmail}</div>
-        <form action="/auth/signout" method="POST">
+        <form action={signOut}>
           <button type="submit" style={styles.signout}>
             Sign out
           </button>
@@ -51,7 +52,6 @@ export function Nav({ roleName, currentPath, userEmail }: Props) {
 const styles: Record<string, React.CSSProperties> = {
   nav: {
     width: '220px',
-    minHeight: '100vh',
     backgroundColor: '#111',
     color: '#fff',
     display: 'flex',

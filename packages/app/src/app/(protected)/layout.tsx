@@ -27,9 +27,9 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const pathname = headersList.get('x-pathname') ?? '/'
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: 'system-ui, sans-serif' }}>
       <Nav roleName={roleName} currentPath={pathname} userEmail={user.email ?? ''} />
-      <main style={{ flex: 1, padding: '32px', backgroundColor: '#fafafa' }}>
+      <main style={{ flex: 1, padding: '32px', backgroundColor: '#fafafa', overflowY: 'auto' }}>
         {children}
       </main>
     </div>

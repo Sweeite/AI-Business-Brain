@@ -1,4 +1,4 @@
-import { signInWithGoogle, signInWithEmail } from './actions'
+import { signInWithEmail } from './actions'
 
 interface Props {
   searchParams: Promise<{ error?: string }>
@@ -21,12 +21,10 @@ export default async function LoginPage({ searchParams }: Props) {
           <p style={styles.error}>Invalid email or password.</p>
         )}
 
-        {/* Primary: Google OAuth */}
-        <form action={signInWithGoogle}>
-          <button type="submit" style={styles.googleBtn}>
-            Sign in with Google
-          </button>
-        </form>
+        {/* Primary: Google OAuth — GET link avoids Server Action redirect issues */}
+        <a href="/api/auth/google" style={styles.googleBtn}>
+          Sign in with Google
+        </a>
 
         <div style={styles.divider}>
           <span>or</span>
@@ -99,6 +97,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '4px',
   },
   googleBtn: {
+    display: 'block',
     width: '100%',
     padding: '10px',
     backgroundColor: '#fff',
@@ -108,6 +107,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 500,
     cursor: 'pointer',
     color: '#3c4043',
+    textDecoration: 'none',
+    textAlign: 'center',
+    boxSizing: 'border-box',
   },
   divider: {
     textAlign: 'center',
