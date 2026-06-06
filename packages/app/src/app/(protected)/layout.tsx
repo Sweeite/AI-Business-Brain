@@ -3,7 +3,7 @@ import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '@/components/nav'
 
-export default async function Home() {
+export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const {
     data: { user },
@@ -13,6 +13,7 @@ export default async function Home() {
     redirect('/login')
   }
 
+  // Fetch role name for nav rendering
   const { data: publicUser } = await supabase
     .from('users')
     .select('role_id, roles(name)')
@@ -29,8 +30,7 @@ export default async function Home() {
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
       <Nav roleName={roleName} currentPath={pathname} userEmail={user.email ?? ''} />
       <main style={{ flex: 1, padding: '32px', backgroundColor: '#fafafa' }}>
-        <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 600 }}>Query Interface</h2>
-        <p style={{ color: '#666', fontSize: '14px' }}>Coming in Issue #10.</p>
+        {children}
       </main>
     </div>
   )

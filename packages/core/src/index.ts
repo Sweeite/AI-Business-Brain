@@ -1,4 +1,7 @@
 export * from './db/types.js'
+export type { Database } from './db/database.types.js'
 export * from './schemas/index.js'
 export { createSupabaseClient } from './supabase/client.js'
 export type { SupabaseClient } from './supabase/client.js'
+export { getNavItems, hasRouteAccess, ROLE_NAV_ITEMS } from './auth/permissions.js'
+export type { NavItem } from './auth/permissions.js'
