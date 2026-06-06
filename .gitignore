@@ -1,0 +1,27 @@
+# dependencies
+node_modules
+**/node_modules
+
+# env files
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+
+# build outputs
+.next
+**/dist
+**/.turbo
+
+# supabase
+supabase/.temp
+supabase/.branches
+
+# misc
+*.log
+*.tsbuildinfo
+.DS_Store
+.idea
+.vscode

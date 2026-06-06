@@ -1,0 +1,16 @@
+{
+  "name": "ai-business-brain",
+  "private": true,
+  "version": "0.0.1",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "build": "pnpm --filter @brain/core build && pnpm --filter @brain/app build && pnpm --filter @brain/worker build",
+    "dev:app": "pnpm --filter @brain/app dev",
+    "dev:worker": "pnpm --filter @brain/worker dev",
+    "typecheck": "pnpm --filter @brain/core typecheck && pnpm --filter @brain/app typecheck && pnpm --filter @brain/worker typecheck",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

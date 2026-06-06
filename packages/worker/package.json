@@ -1,0 +1,21 @@
+{
+  "name": "@brain/worker",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@brain/core": "workspace:*",
+    "@supabase/supabase-js": "^2.43.4",
+    "pg-boss": "^9.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.15.7",
+    "typescript": "^5.4.5"
+  }
+}

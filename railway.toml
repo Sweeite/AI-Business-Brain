@@ -1,0 +1,24 @@
+[build]
+builder = "DOCKERFILE"
+
+[[services]]
+name = "app"
+source = "packages/app"
+dockerfilePath = "packages/app/Dockerfile"
+buildContext = "."
+
+[services.deploy]
+startCommand = "node server.js"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+
+[[services]]
+name = "worker"
+source = "packages/worker"
+dockerfilePath = "packages/worker/Dockerfile"
+buildContext = "."
+
+[services.deploy]
+startCommand = "node dist/index.js"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

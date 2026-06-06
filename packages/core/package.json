@@ -1,0 +1,16 @@
+{
+  "name": "@brain/core",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
