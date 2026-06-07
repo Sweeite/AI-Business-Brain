@@ -2,6 +2,7 @@ import PgBoss from 'pg-boss'
 import ws from 'ws'
 import { createSupabaseClient } from '@brain/core'
 import { registerAllJobs } from './jobs/register.js'
+import { scheduleSystemCrons } from './jobs/schedule.js'
 
 const DATABASE_URL = process.env.DATABASE_URL
 const SUPABASE_URL = process.env.SUPABASE_URL
@@ -31,6 +32,7 @@ boss.on('error', (error) => {
 async function start() {
   await boss.start()
   console.log('[worker] pg-boss started')
+  await scheduleSystemCrons(boss)
   registerAllJobs(boss, supabase)
   console.log('[worker] ready')
 }

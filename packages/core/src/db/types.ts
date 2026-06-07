@@ -149,7 +149,7 @@ export interface MemoryProposal {
   acting_user_id: string
   agent_id: string
   task_id: string
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'pending_review' | 'approved' | 'rejected'
   reviewed_by: string | null
   reviewed_at: string | null
   created_at: string
