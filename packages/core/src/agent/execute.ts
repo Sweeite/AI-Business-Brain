@@ -4,6 +4,8 @@ import type { User, Tool, Memory, MemoryProposalInsert } from '../db/types.js'
 import type { SupabaseClient } from '../supabase/client.js'
 import type { TriggerContext, Permission, ProvenanceLabel, AgentResult } from './types.js'
 import { calculateCost } from './cost.js'
+import { retrieveMemories } from '../memory/retrieve.js'
+import type { RetrievalContext } from '../memory/retrieve.js'
 
 export const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000001'
 
@@ -27,12 +29,13 @@ export async function executeAgent(params: {
   triggerContext: TriggerContext
   permissions: Permission[]
   serviceClient: SupabaseClient
+  retrievalContext?: RetrievalContext
   jobRunId?: string
 }): Promise<AgentResult> {
   const {
     user, agentConfigId, model, systemPrompt, tools,
     memoryContext = [], triggerContext, permissions,
-    serviceClient, jobRunId,
+    serviceClient, retrievalContext, jobRunId,
   } = params
 
   const startedAt = Date.now()
@@ -160,9 +163,147 @@ export async function executeAgent(params: {
               reviewed_at: null,
             })
             result = { status: 'queued' }
+          } else if (toolBlock.name === 'search_memory') {
+            if (retrievalContext) {
+              const input = toolBlock.input as { query_text: string; namespaces?: string[] }
+              const context: RetrievalContext = input.namespaces
+                ? { ...retrievalContext, namespaces: input.namespaces }
+                : retrievalContext
+              const mems = await retrieveMemories({ queryText: input.query_text, context, serviceClient })
+              result = {
+                memories: mems.map((m) => ({
+                  id: m.id,
+                  content: m.content,
+                  type: m.type,
+                  source_refs: m.source_refs,
+                  valid_from: m.valid_from,
+                  sensitivity_level: m.sensitivity_level,
+                })),
+              }
+            } else {
+              result = { error: 'Retrieval context unavailable' }
+            }
+          } else if (toolBlock.name === 'fetch_gmail') {
+            const input = toolBlock.input as { message_id: string }
+            const { data: conn } = await serviceClient
+              .from('connections')
+              .select('id')
+              .eq('owner_user_id', user.id)
+              .eq('connector_type', 'gmail')
+              .eq('status', 'active')
+              .maybeSingle()
+            if (!conn) {
+              result = { error: 'No active Gmail connection' }
+            } else {
+              const { data: tokenJson, error: tokenErr } = await serviceClient.rpc(
+                'get_decrypted_credential', { p_connection_id: conn.id }
+              )
+              if (tokenErr || !tokenJson) {
+                result = { error: 'Could not retrieve Gmail credential' }
+              } else {
+                const token = JSON.parse(tokenJson as string) as { access_token: string }
+                const resp = await fetch(
+                  `https://gmail.googleapis.com/gmail/v1/users/me/messages/${input.message_id}?format=full`,
+                  { headers: { Authorization: `Bearer ${token.access_token}` } }
+                )
+                result = resp.ok ? await resp.json() : { error: `Gmail API error ${resp.status}` }
+              }
+            }
+          } else if (toolBlock.name === 'fetch_drive_file') {
+            const input = toolBlock.input as { file_id: string }
+            const { data: conn } = await serviceClient
+              .from('connections')
+              .select('id')
+              .eq('owner_user_id', user.id)
+              .eq('connector_type', 'google_drive')
+              .eq('status', 'active')
+              .maybeSingle()
+            if (!conn) {
+              result = { error: 'No active Google Drive connection' }
+            } else {
+              const { data: tokenJson, error: tokenErr } = await serviceClient.rpc(
+                'get_decrypted_credential', { p_connection_id: conn.id }
+              )
+              if (tokenErr || !tokenJson) {
+                result = { error: 'Could not retrieve Drive credential' }
+              } else {
+                const token = JSON.parse(tokenJson as string) as { access_token: string }
+                const authHeader = { Authorization: `Bearer ${token.access_token}` }
+                // Fetch file metadata to determine MIME type
+                const metaResp = await fetch(
+                  `https://www.googleapis.com/drive/v3/files/${input.file_id}?fields=id,name,mimeType,size`,
+                  { headers: authHeader }
+                )
+                if (!metaResp.ok) {
+                  result = { error: `Drive API error ${metaResp.status}` }
+                } else {
+                  const meta = await metaResp.json() as { id: string; name: string; mimeType: string; size?: string }
+                  const EXPORT_TYPES: Record<string, string> = {
+                    'application/vnd.google-apps.document': 'text/plain',
+                    'application/vnd.google-apps.spreadsheet': 'text/csv',
+                    'application/vnd.google-apps.presentation': 'text/plain',
+                  }
+                  const exportMime = EXPORT_TYPES[meta.mimeType]
+                  if (exportMime) {
+                    const exportResp = await fetch(
+                      `https://www.googleapis.com/drive/v3/files/${input.file_id}/export?mimeType=${encodeURIComponent(exportMime)}`,
+                      { headers: authHeader }
+                    )
+                    result = exportResp.ok
+                      ? { name: meta.name, mimeType: meta.mimeType, content: await exportResp.text() }
+                      : { error: `Drive export error ${exportResp.status}` }
+                  } else if (meta.mimeType.startsWith('text/')) {
+                    const dlResp = await fetch(
+                      `https://www.googleapis.com/drive/v3/files/${input.file_id}?alt=media`,
+                      { headers: authHeader }
+                    )
+                    result = dlResp.ok
+                      ? { name: meta.name, mimeType: meta.mimeType, content: await dlResp.text() }
+                      : { error: `Drive download error ${dlResp.status}` }
+                  } else {
+                    result = {
+                      name: meta.name,
+                      mimeType: meta.mimeType,
+                      size: meta.size,
+                      message: 'Binary file — content not extractable. Use the file name and metadata only.',
+                    }
+                  }
+                }
+              }
+            }
+          } else if (toolBlock.name === 'search_drive') {
+            const input = toolBlock.input as { query: string }
+            const { data: conn } = await serviceClient
+              .from('connections')
+              .select('id')
+              .eq('owner_user_id', user.id)
+              .eq('connector_type', 'google_drive')
+              .eq('status', 'active')
+              .maybeSingle()
+            if (!conn) {
+              result = { error: 'No active Google Drive connection' }
+            } else {
+              const { data: tokenJson, error: tokenErr } = await serviceClient.rpc(
+                'get_decrypted_credential', { p_connection_id: conn.id }
+              )
+              if (tokenErr || !tokenJson) {
+                result = { error: 'Could not retrieve Drive credential' }
+              } else {
+                const token = JSON.parse(tokenJson as string) as { access_token: string }
+                const qs = new URLSearchParams({
+                  q: input.query,
+                  fields: 'files(id,name,mimeType,modifiedTime,size)',
+                  pageSize: '20',
+                })
+                const resp = await fetch(
+                  `https://www.googleapis.com/drive/v3/files?${qs.toString()}`,
+                  { headers: { Authorization: `Bearer ${token.access_token}` } }
+                )
+                result = resp.ok ? await resp.json() : { error: `Drive API error ${resp.status}` }
+              }
+            }
           } else {
-            // Real tool handlers land in later issues.
-            result = { status: 'not_yet_implemented' }
+            result = { error: 'Tool not implemented' }
           }
 
           toolCallsLog.push({

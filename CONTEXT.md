@@ -122,14 +122,17 @@ Google Docs/Sheets/Slides → export API (text/plain or text/csv). `text/*` file
 **Drive initial sync lists all non-folder files; delta sync uses Changes API.**
 On first connect (`pageToken = null`): `GET /drive/v3/files` with `q=mimeType!='application/vnd.google-apps.folder'`. After processing, `getStartPageToken` is called and stored as the cursor for future deltas. On subsequent syncs: `GET /drive/v3/changes?pageToken={stored}`, advancing the cursor on each response.
 
-**Tool dispatch is stubbed — wire real handlers in issue #10.**
-The `else` branch at `packages/core/src/agent/execute.ts:165` currently returns `{ status: 'not_yet_implemented' }` for all tools except `propose_memory`. Issue #10 (Query Interface) must implement real handlers for:
-- `search_memory` — already implemented as `retrieveMemories()` in `packages/core/src/memory/retrieve.ts`. Wire it into the dispatch: call `retrieveMemories()` with the tool input and return results.
-- `fetch_gmail` — look up the acting user's active `gmail` connection, get token from Vault via `getCredential()`, call Gmail API to fetch the requested message, return content.
-- `fetch_drive_file` — same pattern: look up active `google_drive` connection, get token, call `GET /drive/v3/files/{id}?alt=media` or export for Google Docs types, return content.
-- `search_drive` — look up active `google_drive` connection, get token, call `GET /drive/v3/files?q={query}`, return file list with metadata.
+**Tool dispatch wired — all 4 read tools have real handlers in `packages/core/src/agent/execute.ts`.**
+`search_memory` calls `retrieveMemories()` with the `retrievalContext` passed from the caller. `fetch_gmail`, `fetch_drive_file`, and `search_drive` look up the acting user's active connection, get the token via `get_decrypted_credential` RPC, and call the respective Google API. Drive MIME type handling: Docs/Sheets/Slides export as text; `text/*` downloaded directly; binary files return metadata only. `executeAgent()` now accepts an optional `retrievalContext?: RetrievalContext` parameter — callers supply it so the agent can do secondary `search_memory` tool calls with the correct clearance.
 
-Tool handlers need the acting user's `SupabaseClient` (service role, for Vault access) passed into the dispatch. The handler must look up the connection by `owner_user_id = user.id` and `status = 'active'`. If no active connection exists, return `{ error: 'No active connection' }` — Claude will surface this as "Couldn't reach source" via the provenance label.
+**User query agent config seeded in migration `20260610000001`.**
+`id: '20000000-0000-0000-0000-000000000005'`, name `'system.query.user'`, `required_role: 'Member'`. Loaded by name in `/api/query` route. Tool input_schemas also updated in the same migration (were previously all empty `{}`).
+
+**Query API routes:**
+- `POST /api/query` — executes a user query via `executeAgent()`, writes `miss_log` when 0 memories + no live provenance, returns `{ output, provenanceLabels, agentRunId, isAbstention }`.
+- `GET /api/query` — returns last 20 `agent_runs` for the user where `trigger_context->>'type' = 'user_query'`.
+- `PATCH /api/query/[agentRunId]/feedback` — updates `agent_runs.user_rating` and/or `user_feedback`.
+- `POST /api/memory/propose` — inserts into `memory_proposals` directly; Member proposals forced to `status='pending_review'` and `sensitivity_level='internal'`; Operator+ proposals go to `status='pending'`.
 
 **Drive connector does NOT embed files into chunks.**
 `drive-sync.ts` passes `skipIndexInPlace: true` to `runRoutingPipeline`. Drive files that Gate 3 classifies as `index` are dropped — not written to the `chunks` table. Only `memory` outcomes (durable decisions/SOPs/preferences extracted from docs) are captured. All other Drive content is fetched live via `fetch_drive_file` / `search_drive` tool calls when the agent needs it. Do not remove `skipIndexInPlace: true` from drive-sync.
@@ -179,7 +182,7 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 | 7 | Memory proposal drain pipeline | ✅ Done | commit `19f9af7`; `packages/worker/src/jobs/handlers/memory-proposal-drain.ts`; migration `20260607000005` |
 | 8 | Gmail connector | ✅ Done | commit `0e0d448`; migration `20260608000001`; `packages/core/src/ingestion/`; app API routes; worker handlers |
 | 9 | Google Drive connector | ✅ Done | migration `20260609000001`; app API routes; worker handlers |
-| 10 | Query interface — Dashboard 1 | ⬜ | |
+| 10 | Query interface — Dashboard 1 | ✅ Done | migration `20260610000001`; tool dispatch wired in `packages/core/src/agent/execute.ts`; API routes `/api/query`, `/api/query/[id]/feedback`, `/api/memory/propose`; UI in `packages/app/src/components/query-interface.tsx` + `remember-modal.tsx` |
 | 11 | RBAC + Mission Control — Dashboard 11 | ⬜ | |
 | 12 | Memory Inspector — Dashboard 2 | ⬜ | |
 | 13 | Proactive Builder — Dashboard 5 | ⬜ | |

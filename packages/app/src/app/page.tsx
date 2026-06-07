@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '@/components/nav'
+import { QueryInterface } from '@/components/query-interface'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -26,11 +27,10 @@ export default async function Home() {
   const pathname = headersList.get('x-pathname') ?? '/'
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: 'system-ui, sans-serif' }}>
       <Nav roleName={roleName} currentPath={pathname} userEmail={user.email ?? ''} />
-      <main style={{ flex: 1, padding: '32px', backgroundColor: '#fafafa' }}>
-        <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 600 }}>Query Interface</h2>
-        <p style={{ color: '#666', fontSize: '14px' }}>Coming in Issue #10.</p>
+      <main style={{ flex: 1, padding: '24px 32px', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <QueryInterface userId={user.id} userEmail={user.email ?? ''} roleName={roleName} />
       </main>
     </div>
   )
