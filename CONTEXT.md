@@ -91,6 +91,18 @@ The initial migration file (`20260605000000`) says `target_id text` but the remo
 **RLS on all 19 tables — added before issue #4.**
 Migration `20260607000002` enables Row Level Security on every table. Three SECURITY DEFINER helper functions (`user_role_name()`, `user_clearance_level()`, `sensitivity_to_level(text)`) are used inside policies — never called from TypeScript directly. Service role bypasses RLS; all worker operations are unaffected. See PRD §7.6 for the full access matrix. When building dashboards or server actions, use the user's session client (respects RLS); use service_role only in the worker.
 
+**`executeAgent()` caller contract — extended params.**
+The function lives at `packages/core/src/agent/execute.ts`. The params include three fields beyond the PRD spec that the caller must supply: `agentConfigId: string` (for `agent_runs.agent_config_id`), `model: string` (from `agent_config.model`, used for the API call and cost tracking), and `serviceClient: SupabaseClient` — a **service-role** client, because `agent_runs`, `cost_events`, and `audit_log` are all service_role-only writes per RLS. An optional `jobRunId?: string` links the run to a `job_runs` row for cron/webhook triggers. Callers load the `AgentConfig` row from DB and pass its fields in; the function does not do its own DB lookup.
+
+**Tool execution is stubbed until issues #8/#9.**
+All tools except `propose_memory` return `{ status: 'not_yet_implemented' }`. `propose_memory` is buffered in a local array and only written to `memory_proposals` after a successful run (partial-write guard). Wire real handlers in the connector issues — the dispatch slot in the loop is already in place.
+
+**`SYSTEM_USER_ID` constant is exported from `@brain/core`.**
+Value: `'00000000-0000-0000-0000-000000000001'`. Use it in the worker when constructing the `user` object for cron-triggered `executeAgent()` calls. The function uses this to set `actor_type: 'system'` in the audit log.
+
+**`agent_runs.status` column added in migration `20260607000003`.**
+Values: `'running'` (set at insert), `'completed'` or `'failed'` (updated at end). The `AgentRunStatus` Zod enum and `AgentRun.status` type field are in `packages/core`.
+
 **Secrets never in code.**
 OAuth tokens stored in Supabase Vault. The `connections` table holds a `credential_ref` (a Vault secret UUID), never the raw token. The worker retrieves secrets via the `get_decrypted_credential(connection_id)` SECURITY DEFINER RPC function — never directly.
 
