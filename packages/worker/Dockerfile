@@ -33,4 +33,4 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/worker/node_modules packages/worker/node_modules
 
 USER worker
-CMD ["node", "packages/worker/dist/index.js"]
+CMD ["node", "packages/worker/dist/worker/src/index.js"]

@@ -4,7 +4,7 @@
     "module": "CommonJS",
     "moduleResolution": "Node",
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": "..",
     "baseUrl": ".",
     "paths": {
       "@brain/core": ["../core/src/index.ts"]
