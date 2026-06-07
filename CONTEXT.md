@@ -95,6 +95,18 @@ Migration `20260607000002` enables Row Level Security on every table. Three SECU
 **`executeAgent()` caller contract — extended params.**
 The function lives at `packages/core/src/agent/execute.ts`. The params include three fields beyond the PRD spec that the caller must supply: `agentConfigId: string` (for `agent_runs.agent_config_id`), `model: string` (from `agent_config.model`, used for the API call and cost tracking), and `serviceClient: SupabaseClient` — a **service-role** client, because `agent_runs`, `cost_events`, and `audit_log` are all service_role-only writes per RLS. An optional `jobRunId?: string` links the run to a `job_runs` row for cron/webhook triggers. Callers load the `AgentConfig` row from DB and pass its fields in; the function does not do its own DB lookup.
 
+**Supabase client uses auto-generated Database type.**
+`packages/core/src/supabase/client.ts` imports `Database` from `'../db/database.types.js'` (the generated types), NOT from `'../db/types.js'`. This ensures `.rpc()` calls are typed with the correct Function signatures (enqueue_job, store_credential, etc.) and avoids the dual-export conflict that caused `never` typing on table operations. Manual interfaces in `db/types.ts` are still used for application-level typing but no longer export a separate `Database` interface.
+
+**`enqueue_job` Postgres function enables cross-service job queuing.**
+The app service has no DATABASE_URL and cannot use pg-boss directly. Migration `20260608000001` creates a SECURITY DEFINER function `enqueue_job(p_name text, p_data jsonb)` that inserts into `pgboss.job`. The app's webhook handler calls it via `supabase.rpc('enqueue_job', ...)` with the service role key. The worker's connector-sync handler uses `boss.send()` directly (it has pg-boss access).
+
+**Gmail token stored as JSON in Vault.**
+`{ access_token, refresh_token, expires_at }` is JSON-stringified and stored as a single Vault secret. `expires_at = Date.now() + (expires_in - 300) * 1000` (5-min safety buffer). The token-refresh job checks all active Gmail connections every 30 min and refreshes those expiring within 1 hour. A 401/400 from Google marks the connection `status = 'expired'`.
+
+**Routing pipeline lives in packages/core/src/ingestion/.**
+`runRoutingPipeline()` implements Gate 1 (exclusion rules), skips Gate 2 (unstructured connector), runs Gate 3 doc-level Haiku classifier, and either indexes chunks to the `chunks` table or runs Gate 3 per-chunk and inserts `memory_proposals`. Gate 4 is stubbed (always NO). Each Haiku call writes a `cost_events` row with `event_type = 'ingestion_gate3'`. The worker calls this once per email in gmail-sync.
+
 **Tool execution is stubbed until issues #8/#9.**
 All tools except `propose_memory` return `{ status: 'not_yet_implemented' }`. `propose_memory` is buffered in a local array and only written to `memory_proposals` after a successful run (partial-write guard). Wire real handlers in the connector issues — the dispatch slot in the loop is already in place.
 
@@ -141,8 +153,8 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 | 5 | Memory store: CRUD, Voyage embeddings, hybrid retrieval, permission filtering | ✅ Done | commit `610345f`; `packages/core/src/memory/`; migration `20260607000004` |
 | 6 | pg-boss worker service setup | ✅ Done | commit `1a278c3`; `packages/worker/src/jobs/` |
 | 7 | Memory proposal drain pipeline | ✅ Done | commit `19f9af7`; `packages/worker/src/jobs/handlers/memory-proposal-drain.ts`; migration `20260607000005` |
-| 8 | Gmail connector | ⬜ Next | OAuth, Vault, history sync, push webhook, routing decision tree |
-| 9 | Google Drive connector | ⬜ | Same pattern as Gmail + webhook expiry renewal |
+| 8 | Gmail connector | ✅ Done | commit `0e0d448`; migration `20260608000001`; `packages/core/src/ingestion/`; app API routes; worker handlers |
+| 9 | Google Drive connector | ⬜ Next | Same pattern as Gmail + webhook expiry renewal |
 | 10 | Query interface — Dashboard 1 | ⬜ | |
 | 11 | RBAC + Mission Control — Dashboard 11 | ⬜ | |
 | 12 | Memory Inspector — Dashboard 2 | ⬜ | |
