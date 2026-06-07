@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --require dotenv/config src/index.ts",
     "build": "tsc",
     "start": "node dist/worker/src/index.js",
     "typecheck": "tsc --noEmit"
@@ -11,10 +11,13 @@
   "dependencies": {
     "@brain/core": "workspace:*",
     "@supabase/supabase-js": "^2.43.4",
-    "pg-boss": "^9.0.3"
+    "pg-boss": "^9.0.3",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
+    "@types/ws": "^8.18.1",
+    "dotenv": "^17.4.2",
     "tsx": "^4.15.7",
     "typescript": "^5.4.5"
   }

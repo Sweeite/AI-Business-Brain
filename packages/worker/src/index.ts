@@ -1,4 +1,5 @@
 import PgBoss from 'pg-boss'
+import ws from 'ws'
 import { createSupabaseClient } from '@brain/core'
 import { registerAllJobs } from './jobs/register.js'
 
@@ -10,7 +11,11 @@ if (!DATABASE_URL) throw new Error('DATABASE_URL is required')
 if (!SUPABASE_URL) throw new Error('SUPABASE_URL is required')
 if (!SUPABASE_SERVICE_KEY) throw new Error('SUPABASE_SERVICE_KEY is required')
 
-const supabase = createSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+// ws types don't exactly match supabase-realtime's WebSocketLikeConstructor
+const supabase = createSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  realtime: { transport: ws as any },
+})
 
 const boss = new PgBoss({
   connectionString: DATABASE_URL,
