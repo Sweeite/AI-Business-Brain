@@ -273,6 +273,7 @@ export function createDriveSyncHandler(supabase: SupabaseClient) {
             docClassifierConfig: docClassifier,
             chunkClassifierConfig: chunkClassifier,
             serviceClient: supabase,
+            skipIndexInPlace: true,
           })
           processed++
           if (result.outcome === 'indexed') indexed++

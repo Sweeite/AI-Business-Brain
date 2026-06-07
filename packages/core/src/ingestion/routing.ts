@@ -88,11 +88,12 @@ export async function runRoutingPipeline(params: {
   docClassifierConfig: ClassifierConfig
   chunkClassifierConfig: ClassifierConfig
   serviceClient: SupabaseClient
+  skipIndexInPlace?: boolean
 }): Promise<RoutingResult> {
   const {
     content, senderEmail, connectorType, ownerUserId, jobRunId,
     sourceRef, exclusionRules, docClassifierConfig, chunkClassifierConfig,
-    serviceClient,
+    serviceClient, skipIndexInPlace = false,
   } = params
 
   // ── Gate 1: exclusion check ───────────────────────────────────────────────
@@ -111,6 +112,10 @@ export async function runRoutingPipeline(params: {
   }
 
   const chunks = chunkText(content)
+
+  if (docResult.decision === 'index' && skipIndexInPlace) {
+    return { outcome: 'dropped', chunksWritten: 0 }
+  }
 
   if (docResult.decision === 'index') {
     // INDEX-IN-PLACE: chunk + embed + write to chunks table

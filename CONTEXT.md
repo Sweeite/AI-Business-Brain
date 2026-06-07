@@ -122,8 +122,17 @@ Google Docs/Sheets/Slides → export API (text/plain or text/csv). `text/*` file
 **Drive initial sync lists all non-folder files; delta sync uses Changes API.**
 On first connect (`pageToken = null`): `GET /drive/v3/files` with `q=mimeType!='application/vnd.google-apps.folder'`. After processing, `getStartPageToken` is called and stored as the cursor for future deltas. On subsequent syncs: `GET /drive/v3/changes?pageToken={stored}`, advancing the cursor on each response.
 
-**Tool execution is stubbed until issues #8/#9.**
-All tools except `propose_memory` return `{ status: 'not_yet_implemented' }`. `propose_memory` is buffered in a local array and only written to `memory_proposals` after a successful run (partial-write guard). Wire real handlers in the connector issues — the dispatch slot in the loop is already in place.
+**Tool dispatch is stubbed — wire real handlers in issue #10.**
+The `else` branch at `packages/core/src/agent/execute.ts:165` currently returns `{ status: 'not_yet_implemented' }` for all tools except `propose_memory`. Issue #10 (Query Interface) must implement real handlers for:
+- `search_memory` — already implemented as `retrieveMemories()` in `packages/core/src/memory/retrieve.ts`. Wire it into the dispatch: call `retrieveMemories()` with the tool input and return results.
+- `fetch_gmail` — look up the acting user's active `gmail` connection, get token from Vault via `getCredential()`, call Gmail API to fetch the requested message, return content.
+- `fetch_drive_file` — same pattern: look up active `google_drive` connection, get token, call `GET /drive/v3/files/{id}?alt=media` or export for Google Docs types, return content.
+- `search_drive` — look up active `google_drive` connection, get token, call `GET /drive/v3/files?q={query}`, return file list with metadata.
+
+Tool handlers need the acting user's `SupabaseClient` (service role, for Vault access) passed into the dispatch. The handler must look up the connection by `owner_user_id = user.id` and `status = 'active'`. If no active connection exists, return `{ error: 'No active connection' }` — Claude will surface this as "Couldn't reach source" via the provenance label.
+
+**Drive connector does NOT embed files into chunks.**
+`drive-sync.ts` passes `skipIndexInPlace: true` to `runRoutingPipeline`. Drive files that Gate 3 classifies as `index` are dropped — not written to the `chunks` table. Only `memory` outcomes (durable decisions/SOPs/preferences extracted from docs) are captured. All other Drive content is fetched live via `fetch_drive_file` / `search_drive` tool calls when the agent needs it. Do not remove `skipIndexInPlace: true` from drive-sync.
 
 **`SYSTEM_USER_ID` constant is exported from `@brain/core`.**
 Value: `'00000000-0000-0000-0000-000000000001'`. Use it in the worker when constructing the `user` object for cron-triggered `executeAgent()` calls. The function uses this to set `actor_type: 'system'` in the audit log.

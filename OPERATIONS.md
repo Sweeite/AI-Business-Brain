@@ -41,6 +41,10 @@ Drive files are already in a system of record with their own search API. The `se
 
 **What the Drive connector does capture:** the `memory` outcome from Gate 3 only — decisions, SOPs, or preferences extracted from documents and stored as durable memories. Everything else is left in Drive and fetched live via tools.
 
+**How the agent knows to query Drive:** Claude decides based on the tool descriptions in the DB. If a user asks "what's in the Acme proposal?", Claude sees it has `search_drive` available, calls it, gets live results back, and answers with a "This is live" provenance label. No embedding needed.
+
+**Implementation detail:** `drive-sync.ts` passes `skipIndexInPlace: true` to `runRoutingPipeline`. Do not remove this — it's what prevents Drive content from being written to the `chunks` table.
+
 ---
 
 ## Voyage AI — Rate Limits and Billing
