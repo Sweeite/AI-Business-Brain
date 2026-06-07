@@ -35,8 +35,11 @@ export default async function OnboardingPage({
 
         {connected && (
           <div style={styles.successBanner}>
-            {connected === 'gmail' ? 'Gmail' : connected} connected successfully.
-            Your emails are being indexed in the background.
+            {connected === 'gmail'
+              ? 'Gmail connected successfully. Your emails are being indexed in the background.'
+              : connected === 'drive'
+                ? 'Google Drive connected successfully. Your files are being indexed in the background.'
+                : `${connected} connected successfully.`}
           </div>
         )}
 
@@ -51,7 +54,7 @@ export default async function OnboardingPage({
             name="Google Drive"
             description="Index documents, proposals, and meeting notes stored in Drive."
             href="/api/connectors/drive/connect"
-            disabled
+            connected={connected === 'drive'}
           />
         </div>
 

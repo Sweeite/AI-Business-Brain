@@ -108,7 +108,19 @@ The app service has no DATABASE_URL and cannot use pg-boss directly. Migration `
 The free tier is capped at 3 RPM and 10K TPM. During initial Gmail sync, rapid sequential embedding calls hit this limit immediately. `generateEmbedding()` in `packages/core/src/memory/embed.ts` now retries on 429 with 20s/40s/60s/80s backoff (up to 4 attempts). This makes initial inbox sync very slow (minutes per email on a full inbox) but prevents job crashes. **When a payment method is added to Voyage AI** (dashboard.voyageai.com → Billing), rate limits increase to standard tiers and the retry logic becomes a no-op safety net. The retry code itself does not need to be removed — it handles transient spikes correctly at any tier.
 
 **Routing pipeline lives in packages/core/src/ingestion/.**
-`runRoutingPipeline()` implements Gate 1 (exclusion rules), skips Gate 2 (unstructured connector), runs Gate 3 doc-level Haiku classifier, and either indexes chunks to the `chunks` table or runs Gate 3 per-chunk and inserts `memory_proposals`. Gate 4 is stubbed (always NO). Each Haiku call writes a `cost_events` row with `event_type = 'ingestion_gate3'`. The worker calls this once per email in gmail-sync.
+`runRoutingPipeline()` implements Gate 1 (exclusion rules), skips Gate 2 (unstructured connector), runs Gate 3 doc-level Haiku classifier, and either indexes chunks to the `chunks` table or runs Gate 3 per-chunk and inserts `memory_proposals`. Gate 4 is stubbed (always NO). Each Haiku call writes a `cost_events` row with `event_type = 'ingestion_gate3'`. The worker calls this once per email in gmail-sync and once per file in drive-sync.
+
+**Drive webhook channel token in system_config.**
+`drive_webhook_channel_token` is a single shared secret seeded as `"REPLACE_WITH_SECRET"` in migration `20260609000001`. Set it to a strong random value in Mission Control (or directly in the DB) before connecting any Drive accounts. The webhook handler (`/api/webhooks/drive`) reads this from system_config on every request and rejects notifications that don't match. The callback route skips watch registration if the value is still the placeholder.
+
+**Drive webhook handler uses channelId = connection.id.**
+When registering a Drive Changes watch (`POST /drive/v3/changes/watch`), `id` is set to `connection.id`. This lets the webhook handler resolve `owner_user_id` from a single DB lookup on `sync_cursor->>'channelId'` without needing a separate channelId→userId mapping table. `sync_cursor` for Drive: `{ pageToken, channelId, resourceId }`.
+
+**Drive file content extraction by MIME type.**
+Google Docs/Sheets/Slides → export API (text/plain or text/csv). `text/*` files → direct download. All other MIME types (PDF, images, binaries) → skipped (no content extracted, counted as dropped). The `senderEmail` field passed to `runRoutingPipeline` is empty string for Drive — Gate 1 exclusion rules are email/domain-based and always pass for Drive content.
+
+**Drive initial sync lists all non-folder files; delta sync uses Changes API.**
+On first connect (`pageToken = null`): `GET /drive/v3/files` with `q=mimeType!='application/vnd.google-apps.folder'`. After processing, `getStartPageToken` is called and stored as the cursor for future deltas. On subsequent syncs: `GET /drive/v3/changes?pageToken={stored}`, advancing the cursor on each response.
 
 **Tool execution is stubbed until issues #8/#9.**
 All tools except `propose_memory` return `{ status: 'not_yet_implemented' }`. `propose_memory` is buffered in a local array and only written to `memory_proposals` after a successful run (partial-write guard). Wire real handlers in the connector issues — the dispatch slot in the loop is already in place.
@@ -157,7 +169,7 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 | 6 | pg-boss worker service setup | ✅ Done | commit `1a278c3`; `packages/worker/src/jobs/` |
 | 7 | Memory proposal drain pipeline | ✅ Done | commit `19f9af7`; `packages/worker/src/jobs/handlers/memory-proposal-drain.ts`; migration `20260607000005` |
 | 8 | Gmail connector | ✅ Done | commit `0e0d448`; migration `20260608000001`; `packages/core/src/ingestion/`; app API routes; worker handlers |
-| 9 | Google Drive connector | ⬜ Next | Same pattern as Gmail + webhook expiry renewal |
+| 9 | Google Drive connector | ✅ Done | migration `20260609000001`; app API routes; worker handlers |
 | 10 | Query interface — Dashboard 1 | ⬜ | |
 | 11 | RBAC + Mission Control — Dashboard 11 | ⬜ | |
 | 12 | Memory Inspector — Dashboard 2 | ⬜ | |

@@ -55,7 +55,7 @@ export function createTokenRefreshHandler(supabase: SupabaseClient) {
       const { data: connections, error } = await supabase
         .from('connections')
         .select('id, connector_type')
-        .in('connector_type', ['gmail'])
+        .in('connector_type', ['gmail', 'google_drive'])
         .eq('status', 'active')
 
       if (error) throw new Error(`Failed to fetch connections: ${error.message}`)
