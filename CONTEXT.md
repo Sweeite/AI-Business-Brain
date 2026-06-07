@@ -119,8 +119,8 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 |---|---|---|---|
 | 1 | Monorepo scaffold + full DB migration | ✅ Done | commit `1225c59` |
 | 2 | Auth & user provisioning | ✅ Done | commit `00708fb` |
-| 3 | Supabase Vault credential pattern | ⬜ Next | `get_decrypted_credential` RPC already in migration — issue builds the worker wrapper |
-| 4 | `executeAgent()` core + audit log + cost tracking | ⬜ | Goes in `packages/core` |
+| 3 | Supabase Vault credential pattern | ✅ Done | migration `20260607000001`; helpers in `packages/core/src/vault/credential.ts` |
+| 4 | `executeAgent()` core + audit log + cost tracking | ⬜ Next | Goes in `packages/core` |
 | 5 | Memory store: CRUD, Voyage embeddings, hybrid retrieval, permission filtering | ⬜ | |
 | 6 | pg-boss worker service setup | ⬜ | Register system cron jobs |
 | 7 | Memory proposal drain pipeline | ⬜ | |

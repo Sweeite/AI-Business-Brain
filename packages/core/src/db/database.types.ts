@@ -988,6 +988,14 @@ export type Database = {
         Args: { p_connection_id: string }
         Returns: string
       }
+      refresh_credential: {
+        Args: { p_connection_id: string; p_new_token: string }
+        Returns: undefined
+      }
+      store_credential: {
+        Args: { p_connection_id: string; p_token: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
