@@ -124,8 +124,8 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 | 2 | Auth & user provisioning | ✅ Done | commit `00708fb` |
 | 3 | Supabase Vault credential pattern | ✅ Done | migration `20260607000001`; helpers in `packages/core/src/vault/credential.ts` |
 | 3a | RLS policies for all 19 tables | ✅ Done | migration `20260607000002`; PRD §7.6 is the access matrix |
-| 4 | `executeAgent()` core + audit log + cost tracking | ⬜ Next | Goes in `packages/core` |
-| 5 | Memory store: CRUD, Voyage embeddings, hybrid retrieval, permission filtering | ⬜ | |
+| 4 | `executeAgent()` core + audit log + cost tracking | ✅ Done | commit `ed9eee8`; `packages/core/src/agent/` |
+| 5 | Memory store: CRUD, Voyage embeddings, hybrid retrieval, permission filtering | ⬜ Next | |
 | 6 | pg-boss worker service setup | ⬜ | Register system cron jobs |
 | 7 | Memory proposal drain pipeline | ⬜ | |
 | 8 | Gmail connector | ⬜ | OAuth, Vault, history sync, push webhook, routing decision tree |
