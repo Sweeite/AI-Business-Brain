@@ -8,7 +8,7 @@ import { createJobRun, completeJobRun, failJobRun } from '../lifecycle.js'
 interface DriveSyncData {
   userId: string
   connectionId?: string
-  pageToken?: string | null
+  triggeredBy?: string
 }
 
 interface DriveToken {
@@ -153,9 +153,13 @@ async function loadClassifierConfigs(supabase: SupabaseClient): Promise<{
 export function createDriveSyncHandler(supabase: SupabaseClient) {
   return async (job: PgBoss.JobWithMetadata): Promise<void> => {
     const data = (job.data ?? {}) as DriveSyncData
-    const { userId, connectionId: jobConnectionId } = data
+    const { userId, connectionId: jobConnectionId, triggeredBy } = data
 
-    const runId = await createJobRun(supabase, JOB_TYPES.DRIVE_SYNC, 'webhook')
+    const runId = await createJobRun(
+      supabase,
+      JOB_TYPES.DRIVE_SYNC,
+      (triggeredBy as 'cron' | 'webhook' | 'manual' | 'system') ?? 'system',
+    )
     try {
       // Load connection
       const query = supabase

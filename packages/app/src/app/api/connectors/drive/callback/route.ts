@@ -184,7 +184,7 @@ export async function GET(req: NextRequest) {
   // Enqueue initial sync
   await serviceClient.rpc('enqueue_job', {
     p_name: 'drive.sync',
-    p_data: { userId, connectionId: conn.id, pageToken: null },
+    p_data: { userId, connectionId: conn.id, triggeredBy: 'system' },
   })
 
   return NextResponse.redirect(

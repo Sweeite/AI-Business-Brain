@@ -49,7 +49,7 @@ export async function POST(req: Request): Promise<Response> {
   // 4. Enqueue drive.sync job
   await serviceClient.rpc('enqueue_job', {
     p_name: 'drive.sync',
-    p_data: { userId: conn.owner_user_id, connectionId: conn.id, pageToken: null },
+    p_data: { userId: conn.owner_user_id, connectionId: conn.id, triggeredBy: 'webhook' },
   })
 
   return new Response(null, { status: 200 })

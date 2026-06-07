@@ -30,14 +30,15 @@ export function createDriveWebhookRenewHandler(supabase: SupabaseClient) {
       const channelToken = (configRow?.value as string | undefined) ?? ''
       const webhookEnabled = channelToken && channelToken !== 'REPLACE_WITH_SECRET'
 
-      // Find active Drive connections expiring within 48 hours
+      // Find active Drive connections expiring within 48 hours OR with no webhook registered yet
+      // NULL webhook_expires_at means initial registration failed — treat as needing renewal
       const cutoff = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
       const { data: connections, error } = await supabase
         .from('connections')
         .select('id, sync_cursor')
         .eq('connector_type', 'google_drive')
         .eq('status', 'active')
-        .lt('webhook_expires_at', cutoff)
+        .or(`webhook_expires_at.lt.${cutoff},webhook_expires_at.is.null`)
 
       if (error) throw new Error(`Failed to fetch connections: ${error.message}`)
 

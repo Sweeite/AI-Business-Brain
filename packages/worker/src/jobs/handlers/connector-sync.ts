@@ -10,7 +10,7 @@ export function createConnectorSyncHandler(supabase: SupabaseClient, boss: PgBos
       const { data: connections, error } = await supabase
         .from('connections')
         .select('id, connector_type, owner_user_id')
-        .eq('connector_type', 'gmail')
+        .in('connector_type', ['gmail', 'google_drive'])
         .eq('status', 'active')
 
       if (error) throw new Error(`Failed to fetch connections: ${error.message}`)
@@ -19,8 +19,22 @@ export function createConnectorSyncHandler(supabase: SupabaseClient, boss: PgBos
 
       for (const conn of connections ?? []) {
         if (!conn.owner_user_id) continue
-        await boss.send(JOB_TYPES.GMAIL_SYNC, { userId: conn.owner_user_id, historyId: null })
-        enqueued++
+
+        if (conn.connector_type === 'gmail') {
+          await boss.send(JOB_TYPES.GMAIL_SYNC, {
+            userId: conn.owner_user_id,
+            historyId: null,
+            triggeredBy: 'cron',
+          })
+          enqueued++
+        } else if (conn.connector_type === 'google_drive') {
+          await boss.send(JOB_TYPES.DRIVE_SYNC, {
+            userId: conn.owner_user_id,
+            connectionId: conn.id,
+            triggeredBy: 'cron',
+          })
+          enqueued++
+        }
       }
 
       await completeJobRun(supabase, runId, { enqueued })
