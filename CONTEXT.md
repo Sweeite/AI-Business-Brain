@@ -104,6 +104,9 @@ The app service has no DATABASE_URL and cannot use pg-boss directly. Migration `
 **Gmail token stored as JSON in Vault.**
 `{ access_token, refresh_token, expires_at }` is JSON-stringified and stored as a single Vault secret. `expires_at = Date.now() + (expires_in - 300) * 1000` (5-min safety buffer). The token-refresh job checks all active Gmail connections every 30 min and refreshes those expiring within 1 hour. A 401/400 from Google marks the connection `status = 'expired'`.
 
+**Voyage AI free tier rate limit — temporary workaround in place.**
+The free tier is capped at 3 RPM and 10K TPM. During initial Gmail sync, rapid sequential embedding calls hit this limit immediately. `generateEmbedding()` in `packages/core/src/memory/embed.ts` now retries on 429 with 20s/40s/60s/80s backoff (up to 4 attempts). This makes initial inbox sync very slow (minutes per email on a full inbox) but prevents job crashes. **When a payment method is added to Voyage AI** (dashboard.voyageai.com → Billing), rate limits increase to standard tiers and the retry logic becomes a no-op safety net. The retry code itself does not need to be removed — it handles transient spikes correctly at any tier.
+
 **Routing pipeline lives in packages/core/src/ingestion/.**
 `runRoutingPipeline()` implements Gate 1 (exclusion rules), skips Gate 2 (unstructured connector), runs Gate 3 doc-level Haiku classifier, and either indexes chunks to the `chunks` table or runs Gate 3 per-chunk and inserts `memory_proposals`. Gate 4 is stubbed (always NO). Each Haiku call writes a `cost_events` row with `event_type = 'ingestion_gate3'`. The worker calls this once per email in gmail-sync.
 
