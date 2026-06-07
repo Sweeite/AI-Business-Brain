@@ -137,8 +137,8 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 | 3 | Supabase Vault credential pattern | ✅ Done | migration `20260607000001`; helpers in `packages/core/src/vault/credential.ts` |
 | 3a | RLS policies for all 19 tables | ✅ Done | migration `20260607000002`; PRD §7.6 is the access matrix |
 | 4 | `executeAgent()` core + audit log + cost tracking | ✅ Done | commit `ed9eee8`; `packages/core/src/agent/` |
-| 5 | Memory store: CRUD, Voyage embeddings, hybrid retrieval, permission filtering | ⬜ Next | |
-| 6 | pg-boss worker service setup | ⬜ | Register system cron jobs |
+| 5 | Memory store: CRUD, Voyage embeddings, hybrid retrieval, permission filtering | ✅ Done | commit `610345f`; `packages/core/src/memory/`; migration `20260607000004` |
+| 6 | pg-boss worker service setup | ⬜ Next | Register system cron jobs |
 | 7 | Memory proposal drain pipeline | ⬜ | |
 | 8 | Gmail connector | ⬜ | OAuth, Vault, history sync, push webhook, routing decision tree |
 | 9 | Google Drive connector | ⬜ | Same pattern as Gmail + webhook expiry renewal |
