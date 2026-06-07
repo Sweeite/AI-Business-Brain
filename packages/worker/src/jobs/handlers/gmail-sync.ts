@@ -61,6 +61,38 @@ async function gmailFetch<T>(
   return res.json() as Promise<T>
 }
 
+// Pre-filter: drop obviously automated emails before hitting Gate 3.
+// Catches newsletters, auto-replies, notifications, calendar invites, etc.
+// Free — no API call needed, just header inspection.
+function isAutomatedEmail(headers: GmailHeader[]): boolean {
+  const get = (name: string) =>
+    headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value ?? ''
+
+  // Mailing lists and newsletters
+  if (get('List-Unsubscribe')) return true
+  if (/\b(bulk|list|junk)\b/i.test(get('Precedence'))) return true
+
+  // Auto-generated / auto-forwarded
+  const autoSubmitted = get('Auto-Submitted')
+  if (autoSubmitted && autoSubmitted.toLowerCase() !== 'no') return true
+  if (get('X-Auto-Response-Suppress')) return true
+
+  // Calendar invites
+  if (get('Content-Type').includes('text/calendar')) return true
+
+  // Known automated sender patterns
+  const from = get('From').toLowerCase()
+  const automatedSenders = [
+    'no-reply@', 'noreply@', 'do-not-reply@', 'donotreply@',
+    'mailer-daemon@', 'postmaster@', 'bounce@', 'bounces@',
+    'notifications@', 'notification@', 'alerts@', 'alert@',
+    'updates@', 'newsletter@', 'marketing@', 'info@',
+  ]
+  if (automatedSenders.some(p => from.includes(p))) return true
+
+  return false
+}
+
 function extractEmailBody(part: GmailMessagePart): string {
   if (part.mimeType === 'text/plain' && part.body?.data) {
     return Buffer.from(part.body.data, 'base64url').toString('utf-8')
@@ -141,6 +173,16 @@ async function loadClassifierConfigs(supabase: SupabaseClient): Promise<{
   }
 }
 
+async function loadLookbackDays(supabase: SupabaseClient): Promise<number> {
+  const { data } = await supabase
+    .from('system_config')
+    .select('value')
+    .eq('key', 'initial_sync_lookback_days')
+    .maybeSingle()
+  const val = data?.value as number | null
+  return val ?? 365
+}
+
 async function processMessage(
   messageId: string,
   accessToken: string,
@@ -164,6 +206,10 @@ async function processMessage(
   }
 
   const headers = message.payload.headers ?? []
+
+  // Pre-filter: drop automated emails before any Gate 3 API call
+  if (isAutomatedEmail(headers)) return 'dropped'
+
   const from = headerValue(headers, 'From')
   const subject = headerValue(headers, 'Subject')
   const senderEmail = parseSenderEmail(from)
@@ -237,12 +283,29 @@ export function createGmailSyncHandler(supabase: SupabaseClient) {
       const isInitialSync = !cursor['historyId']
 
       if (isInitialSync) {
-        // Initial sync: list recent messages
-        const list = await gmailFetch<GmailListResponse>(
-          '/users/me/messages?maxResults=500&q=in:inbox',
-          token.access_token,
-        )
-        messageIds = (list.messages ?? []).map(m => m.id)
+        const lookbackDays = await loadLookbackDays(supabase)
+        let query = 'in:inbox'
+
+        if (lookbackDays > 0) {
+          const cutoff = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
+          const yyyy = cutoff.getFullYear()
+          const mm = String(cutoff.getMonth() + 1).padStart(2, '0')
+          const dd = String(cutoff.getDate()).padStart(2, '0')
+          query += ` after:${yyyy}/${mm}/${dd}`
+        }
+
+        // Paginate through all matching messages
+        let pageToken: string | undefined
+        do {
+          const qs = new URLSearchParams({ maxResults: '500', q: query })
+          if (pageToken) qs.set('pageToken', pageToken)
+          const list = await gmailFetch<GmailListResponse>(
+            `/users/me/messages?${qs}`,
+            token.access_token,
+          )
+          messageIds.push(...(list.messages ?? []).map(m => m.id))
+          pageToken = list.nextPageToken
+        } while (pageToken)
       } else {
         // Delta sync: use history API
         const startHistoryId = String(cursor['historyId'])

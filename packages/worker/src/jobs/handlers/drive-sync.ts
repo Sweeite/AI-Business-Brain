@@ -116,6 +116,16 @@ async function refreshDriveToken(
   return newToken.access_token
 }
 
+async function loadLookbackDays(supabase: SupabaseClient): Promise<number> {
+  const { data } = await supabase
+    .from('system_config')
+    .select('value')
+    .eq('key', 'initial_sync_lookback_days')
+    .maybeSingle()
+  const val = data?.value as number | null
+  return val ?? 365
+}
+
 async function loadClassifierConfigs(supabase: SupabaseClient): Promise<{
   docClassifier: ClassifierConfig
   chunkClassifier: ClassifierConfig
@@ -181,11 +191,18 @@ export function createDriveSyncHandler(supabase: SupabaseClient) {
       let newPageToken: string | null = null
 
       if (!storedPageToken) {
-        // Initial sync: list all non-folder files
+        // Initial sync: list non-folder files within the lookback window
+        const lookbackDays = await loadLookbackDays(supabase)
+        let driveQuery = "mimeType != 'application/vnd.google-apps.folder' and trashed = false"
+        if (lookbackDays > 0) {
+          const cutoff = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
+          driveQuery += ` and modifiedTime > '${cutoff.toISOString()}'`
+        }
+
         let pageToken: string | undefined
         do {
           const qs = new URLSearchParams({
-            q: "mimeType != 'application/vnd.google-apps.folder' and trashed = false",
+            q: driveQuery,
             fields: 'nextPageToken,files(id,name,mimeType,modifiedTime)',
             pageSize: '100',
             ...(pageToken ? { pageToken } : {}),
