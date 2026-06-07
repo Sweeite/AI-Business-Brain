@@ -16,6 +16,7 @@ import type {
   ImprovementStatus,
   ToolActionType,
   ClearanceLevel,
+  AgentRunStatus,
 } from '../schemas/index.js'
 
 // ── roles ────────────────────────────────────────────────────────────────────
@@ -242,6 +243,7 @@ export interface AgentRun {
   duration_ms: number | null
   user_rating: -1 | 0 | 1 | null
   user_feedback: string | null
+  status: AgentRunStatus
   created_at: string
 }
 

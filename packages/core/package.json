@@ -7,6 +7,7 @@
     "build": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.0",
     "@supabase/supabase-js": "^2.43.4",
     "zod": "^3.23.8"
   },

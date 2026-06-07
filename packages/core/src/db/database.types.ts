@@ -148,6 +148,7 @@ export type Database = {
           output: string | null
           provenance_labels: Json | null
           reasoning_trace: string | null
+          status: string
           tokens_used: number | null
           tool_calls: Json | null
           trigger_context: Json | null
@@ -166,6 +167,7 @@ export type Database = {
           output?: string | null
           provenance_labels?: Json | null
           reasoning_trace?: string | null
+          status?: string
           tokens_used?: number | null
           tool_calls?: Json | null
           trigger_context?: Json | null
@@ -184,6 +186,7 @@ export type Database = {
           output?: string | null
           provenance_labels?: Json | null
           reasoning_trace?: string | null
+          status?: string
           tokens_used?: number | null
           tool_calls?: Json | null
           trigger_context?: Json | null

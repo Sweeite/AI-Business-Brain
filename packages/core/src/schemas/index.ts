@@ -56,3 +56,6 @@ export type ToolActionType = z.infer<typeof ToolActionType>
 
 export const ClearanceLevel = z.enum(['public', 'internal', 'management', 'leadership'])
 export type ClearanceLevel = z.infer<typeof ClearanceLevel>
+
+export const AgentRunStatus = z.enum(['running', 'completed', 'failed'])
+export type AgentRunStatus = z.infer<typeof AgentRunStatus>
