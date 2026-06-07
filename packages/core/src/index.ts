@@ -9,3 +9,5 @@ export { getCredential, storeCredential, refreshCredential } from './vault/crede
 export { executeAgent, SYSTEM_USER_ID } from './agent/execute.js'
 export type { TriggerContext, Permission, ProvenanceLabel, AgentResult } from './agent/types.js'
 export { calculateCost } from './agent/cost.js'
+export { generateEmbedding, writeMemory, invalidateMemory, retrieveMemories, EMBEDDING_MODEL, EMBEDDING_MODEL_VERSION } from './memory/index.js'
+export type { RetrievalContext } from './memory/index.js'
