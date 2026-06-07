@@ -27,6 +27,7 @@ A single-tenant AI memory system sold as a boilerplate by an AI agency. One Rail
 **Env files:**
 - `packages/app/.env.local` — populated, do not overwrite
 - `packages/worker/.env` — populated, do not overwrite
+- `.example` counterparts exist for both (e.g. `.env.local.example`). If a required env variable is missing from a populated file, check the corresponding `.example` first. If the variable is also absent from the `.example`, add it there — the `.example` is the canonical list of all required variables for that service.
 
 ---
 
