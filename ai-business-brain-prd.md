@@ -511,6 +511,30 @@ The Owner/Admin role manages the system via the Mission Control dashboard:
 - View and manage all connectors
 - Set memory clearance per role
 
+### 7.6 Database-level enforcement (RLS)
+
+All 19 tables have Row Level Security enabled. This is the DB-layer safety net; the retrieval layer (§7.4) remains the primary enforcement point for memory access.
+
+**Helper functions (SECURITY DEFINER, callable by `authenticated`):**
+- `user_role_name()` → `text` — current user's role ('Owner', 'Operator', 'Manager', 'Member')
+- `user_clearance_level()` → `int` — numeric clearance (Owner=4, Operator/Manager=3, Member=2)
+- `sensitivity_to_level(text)` → `int` — maps 'public'=1, 'internal'=2, 'management'=3, 'leadership'=4
+
+**Access summary:**
+- Lookup tables (`roles`, `tools`, `connector_schemas`, `agent_configs`, `agent_config_versions`, `system_config`): SELECT for all authenticated; writes via service_role only (except `system_config` UPDATE for Owner).
+- `users`: SELECT own row or Operator+; UPDATE own row or Owner.
+- `memories`: SELECT where `sensitivity_to_level(sensitivity_level) ≤ user_clearance_level()`; writes service_role only.
+- `memory_proposals`: SELECT own or Operator+; INSERT own; UPDATE Operator+.
+- `connections`: SELECT own (per-user) or all (org) or Operator+; INSERT per-user own / org Operator+; UPDATE/DELETE own or Operator+.
+- `routines`: SELECT own or Manager+; INSERT own user-scope; UPDATE own or Manager+; DELETE own or Operator+.
+- `job_runs`, `agent_runs`: SELECT own or Manager+; writes service_role only.
+- `miss_log`, `audit_log`, `cost_events`: SELECT Operator+; writes service_role only.
+- `memory_feedback`: SELECT own or Operator+; INSERT own.
+- `improvement_suggestions`: SELECT Operator+; UPDATE Owner (approve/reject); writes service_role only.
+- `chunks`: SELECT own or org (NULL owner) or Manager+; writes service_role only.
+
+Service role (worker) bypasses RLS entirely — all worker operations are unaffected.
+
 ---
 
 ## 8. Agent Execution Layer

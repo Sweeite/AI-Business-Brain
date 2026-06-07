@@ -88,6 +88,9 @@ The initial migration file (`20260605000000`) says `target_id text` but the remo
 **Role-based route access is not yet wired — do it when the first gated route lands.**
 `hasRouteAccess(roleName, pathname)` is implemented in `packages/core/src/auth/permissions.ts` and exported from `@brain/core`, but is never called. The middleware only guards unauthenticated users (→ `/login`); it does not block a Member from hitting `/memory` or `/activity`. When any role-gated route is added (Issues #10+), wire the check in `packages/app/src/middleware.ts` — after the `getUser()` call, fetch the user's role from `public.users`, call `hasRouteAccess()`, and return a 403 or redirect to `/` for insufficient role. This was deferred from Issue #2 because no gated routes existed yet.
 
+**RLS on all 19 tables — added before issue #4.**
+Migration `20260607000002` enables Row Level Security on every table. Three SECURITY DEFINER helper functions (`user_role_name()`, `user_clearance_level()`, `sensitivity_to_level(text)`) are used inside policies — never called from TypeScript directly. Service role bypasses RLS; all worker operations are unaffected. See PRD §7.6 for the full access matrix. When building dashboards or server actions, use the user's session client (respects RLS); use service_role only in the worker.
+
 **Secrets never in code.**
 OAuth tokens stored in Supabase Vault. The `connections` table holds a `credential_ref` (a Vault secret UUID), never the raw token. The worker retrieves secrets via the `get_decrypted_credential(connection_id)` SECURITY DEFINER RPC function — never directly.
 
@@ -120,6 +123,7 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 | 1 | Monorepo scaffold + full DB migration | ✅ Done | commit `1225c59` |
 | 2 | Auth & user provisioning | ✅ Done | commit `00708fb` |
 | 3 | Supabase Vault credential pattern | ✅ Done | migration `20260607000001`; helpers in `packages/core/src/vault/credential.ts` |
+| 3a | RLS policies for all 19 tables | ✅ Done | migration `20260607000002`; PRD §7.6 is the access matrix |
 | 4 | `executeAgent()` core + audit log + cost tracking | ⬜ Next | Goes in `packages/core` |
 | 5 | Memory store: CRUD, Voyage embeddings, hybrid retrieval, permission filtering | ⬜ | |
 | 6 | pg-boss worker service setup | ⬜ | Register system cron jobs |

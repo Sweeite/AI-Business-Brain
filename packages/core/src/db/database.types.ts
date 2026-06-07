@@ -992,10 +992,13 @@ export type Database = {
         Args: { p_connection_id: string; p_new_token: string }
         Returns: undefined
       }
+      sensitivity_to_level: { Args: { s: string }; Returns: number }
       store_credential: {
         Args: { p_connection_id: string; p_token: string }
         Returns: undefined
       }
+      user_clearance_level: { Args: never; Returns: number }
+      user_role_name: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
