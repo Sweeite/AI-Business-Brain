@@ -170,11 +170,17 @@ export interface Connection {
   granted_scopes: string[]
   last_synced_at: string | null
   webhook_expires_at: string | null
+  sync_cursor: Record<string, unknown>
+  exclusion_rules: Array<{ type: 'email' | 'domain'; value: string }>
   created_by: string
   created_at: string
 }
 
-export type ConnectionInsert = Omit<Connection, 'created_at'> & { created_at?: string }
+export type ConnectionInsert = Omit<Connection, 'created_at' | 'sync_cursor' | 'exclusion_rules'> & {
+  created_at?: string
+  sync_cursor?: Record<string, unknown>
+  exclusion_rules?: Array<{ type: 'email' | 'domain'; value: string }>
+}
 export type ConnectionUpdate = Partial<ConnectionInsert>
 
 // ── routines ──────────────────────────────────────────────────────────────────
@@ -373,30 +379,5 @@ export interface SystemConfig {
 export type SystemConfigInsert = Omit<SystemConfig, 'updated_at'> & { updated_at?: string }
 export type SystemConfigUpdate = Partial<SystemConfigInsert>
 
-// ── Database (typed Supabase client shape) ────────────────────────────────────
-
-export interface Database {
-  public: {
-    Tables: {
-      roles: { Row: Role; Insert: RoleInsert; Update: RoleUpdate }
-      users: { Row: User; Insert: UserInsert; Update: UserUpdate }
-      agent_configs: { Row: AgentConfig; Insert: AgentConfigInsert; Update: AgentConfigUpdate }
-      agent_config_versions: { Row: AgentConfigVersion; Insert: AgentConfigVersionInsert; Update: Partial<AgentConfigVersionInsert> }
-      tools: { Row: Tool; Insert: ToolInsert; Update: ToolUpdate }
-      memories: { Row: Memory; Insert: MemoryInsert; Update: MemoryUpdate }
-      memory_proposals: { Row: MemoryProposal; Insert: MemoryProposalInsert; Update: MemoryProposalUpdate }
-      connections: { Row: Connection; Insert: ConnectionInsert; Update: ConnectionUpdate }
-      routines: { Row: Routine; Insert: RoutineInsert; Update: RoutineUpdate }
-      job_runs: { Row: JobRun; Insert: JobRunInsert; Update: JobRunUpdate }
-      agent_runs: { Row: AgentRun; Insert: AgentRunInsert; Update: AgentRunUpdate }
-      miss_log: { Row: MissLog; Insert: MissLogInsert; Update: MissLogUpdate }
-      memory_feedback: { Row: MemoryFeedback; Insert: MemoryFeedbackInsert; Update: Partial<MemoryFeedbackInsert> }
-      improvement_suggestions: { Row: ImprovementSuggestion; Insert: ImprovementSuggestionInsert; Update: ImprovementSuggestionUpdate }
-      audit_log: { Row: AuditLog; Insert: AuditLogInsert; Update: Partial<AuditLogInsert> }
-      cost_events: { Row: CostEvent; Insert: CostEventInsert; Update: Partial<CostEventInsert> }
-      chunks: { Row: Chunk; Insert: ChunkInsert; Update: ChunkUpdate }
-      connector_schemas: { Row: ConnectorSchema; Insert: ConnectorSchemaInsert; Update: ConnectorSchemaUpdate }
-      system_config: { Row: SystemConfig; Insert: SystemConfigInsert; Update: SystemConfigUpdate }
-    }
-  }
-}
+// Database type is the auto-generated type from database.types.ts — exported from index.ts.
+// Do not duplicate it here; it lives exclusively in database.types.ts.

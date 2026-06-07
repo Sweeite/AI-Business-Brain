@@ -303,12 +303,14 @@ export type Database = {
           created_at: string
           created_by: string
           credential_ref: string
+          exclusion_rules: Json | null
           granted_scopes: Json
           id: string
           last_synced_at: string | null
           owner_user_id: string | null
           scope: string
           status: string
+          sync_cursor: Json | null
           webhook_expires_at: string | null
         }
         Insert: {
@@ -316,12 +318,14 @@ export type Database = {
           created_at?: string
           created_by: string
           credential_ref: string
+          exclusion_rules?: Json | null
           granted_scopes?: Json
           id?: string
           last_synced_at?: string | null
           owner_user_id?: string | null
           scope: string
           status?: string
+          sync_cursor?: Json | null
           webhook_expires_at?: string | null
         }
         Update: {
@@ -329,12 +333,14 @@ export type Database = {
           created_at?: string
           created_by?: string
           credential_ref?: string
+          exclusion_rules?: Json | null
           granted_scopes?: Json
           id?: string
           last_synced_at?: string | null
           owner_user_id?: string | null
           scope?: string
           status?: string
+          sync_cursor?: Json | null
           webhook_expires_at?: string | null
         }
         Relationships: [
@@ -987,13 +993,53 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      enqueue_job: { Args: { p_data: Json; p_name: string }; Returns: string }
       get_decrypted_credential: {
         Args: { p_connection_id: string }
         Returns: string
       }
+      increment_retrieval_counts: {
+        Args: { p_ids: string[] }
+        Returns: undefined
+      }
       refresh_credential: {
         Args: { p_connection_id: string; p_new_token: string }
         Returns: undefined
+      }
+      search_memories_hybrid: {
+        Args: {
+          p_clearance: number
+          p_embedding: string
+          p_floor: number
+          p_max_results: number
+          p_namespaces: string[]
+          p_query_text: string
+          p_zones: string[]
+        }
+        Returns: {
+          agent_task_id: string
+          author_id: string
+          author_type: string
+          content: string
+          content_hash: string
+          created_at: string
+          embedding_model: string
+          embedding_model_version: string
+          id: string
+          last_retrieved_at: string
+          namespace: string
+          retrieval_count: number
+          sensitivity_level: string
+          similarity_score: number
+          source_refs: Json
+          status: string
+          type: string
+          updated_at: string
+          utility_score: number
+          valid_from: string
+          valid_to: string
+          zone: string
+        }[]
       }
       sensitivity_to_level: { Args: { s: string }; Returns: number }
       store_credential: {

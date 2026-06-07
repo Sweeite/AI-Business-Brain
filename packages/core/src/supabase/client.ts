@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClientOptions, type SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '../db/types.js'
+import type { Database } from '../db/database.types.js'
 
 export function createSupabaseClient(
   url: string,

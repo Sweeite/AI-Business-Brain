@@ -11,7 +11,7 @@ import { createDriveWebhookRenewHandler } from './handlers/drive-webhook-renew.j
 export function registerAllJobs(boss: PgBoss, supabase: SupabaseClient): void {
   boss.work(JOB_TYPES.GMAIL_SYNC, { includeMetadata: true }, createGmailSyncHandler(supabase))
   boss.work(JOB_TYPES.DRIVE_SYNC, { includeMetadata: true }, createDriveSyncHandler(supabase))
-  boss.work(JOB_TYPES.CONNECTOR_SYNC, { includeMetadata: true }, createConnectorSyncHandler(supabase))
+  boss.work(JOB_TYPES.CONNECTOR_SYNC, { includeMetadata: true }, createConnectorSyncHandler(supabase, boss))
   boss.work(JOB_TYPES.TOKEN_REFRESH, { includeMetadata: true }, createTokenRefreshHandler(supabase))
   boss.work(JOB_TYPES.MEMORY_PROPOSAL_DRAIN, { includeMetadata: true }, createMemoryProposalDrainHandler(supabase))
   boss.work(JOB_TYPES.DRIVE_WEBHOOK_RENEW, { includeMetadata: true }, createDriveWebhookRenewHandler(supabase))

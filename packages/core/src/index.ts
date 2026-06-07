@@ -11,3 +11,6 @@ export type { TriggerContext, Permission, ProvenanceLabel, AgentResult } from '.
 export { calculateCost } from './agent/cost.js'
 export { generateEmbedding, writeMemory, invalidateMemory, retrieveMemories, EMBEDDING_MODEL, EMBEDDING_MODEL_VERSION } from './memory/index.js'
 export type { RetrievalContext } from './memory/index.js'
+export { runRoutingPipeline } from './ingestion/routing.js'
+export type { ExclusionRule, ClassifierConfig, RoutingResult } from './ingestion/routing.js'
+export { chunkText } from './ingestion/chunking.js'
