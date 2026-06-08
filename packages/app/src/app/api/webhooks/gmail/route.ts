@@ -71,5 +71,24 @@ export async function POST(req: Request): Promise<Response> {
     p_data: { userId: dbUser.id, historyId },
   })
 
+  // 5. Fire any webhook routines listening for email.received
+  const { data: routines } = await serviceClient
+    .from('routines')
+    .select('id, webhook_filters')
+    .eq('trigger_type', 'webhook')
+    .eq('webhook_connector', 'gmail')
+    .eq('webhook_event', 'email.received')
+    .eq('is_active', true)
+
+  for (const r of routines ?? []) {
+    const filters = r.webhook_filters as Record<string, unknown> | null
+    // If routine has a from: filter, only fire when emailAddress matches
+    if (filters?.from && filters.from !== emailAddress) continue
+    await serviceClient.rpc('enqueue_job', {
+      p_name: 'routine.run',
+      p_data: { routineId: r.id, triggeredBy: 'webhook' },
+    })
+  }
+
   return new Response(null, { status: 200 })
 }

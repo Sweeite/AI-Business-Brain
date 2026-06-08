@@ -52,5 +52,21 @@ export async function POST(req: Request): Promise<Response> {
     p_data: { userId: conn.owner_user_id, connectionId: conn.id, triggeredBy: 'webhook' },
   })
 
+  // 5. Fire any webhook routines listening for drive.file.changed
+  const { data: routines } = await serviceClient
+    .from('routines')
+    .select('id')
+    .eq('trigger_type', 'webhook')
+    .eq('webhook_connector', 'google_drive')
+    .eq('webhook_event', 'file.changed')
+    .eq('is_active', true)
+
+  for (const r of routines ?? []) {
+    await serviceClient.rpc('enqueue_job', {
+      p_name: 'routine.run',
+      p_data: { routineId: r.id, triggeredBy: 'webhook' },
+    })
+  }
+
   return new Response(null, { status: 200 })
 }

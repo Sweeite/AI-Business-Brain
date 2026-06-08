@@ -1,6 +1,7 @@
 import type PgBoss from 'pg-boss'
 import type { SupabaseClient } from '@brain/core'
 import { JOB_TYPES } from './constants.js'
+import { syncRoutineSchedules } from './handlers/routine-schedule-sync.js'
 
 const DEFAULTS: Record<string, string> = {
   [JOB_TYPES.MEMORY_PROPOSAL_DRAIN]: '*/5 * * * *',
@@ -64,4 +65,7 @@ export async function scheduleSystemCrons(boss: PgBoss, supabase: SupabaseClient
   )
 
   console.log('[worker] system crons scheduled')
+
+  // Sync user-defined cron routines from the routines table
+  await syncRoutineSchedules(boss, supabase)
 }
