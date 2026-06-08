@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { createSupabaseClient } from '@brain/core'
 import { Nav } from '@/components/nav'
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -13,15 +14,19 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     redirect('/login')
   }
 
-  // Fetch role name for nav rendering
-  const { data: publicUser } = await supabase
+  const serviceClient = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!,
+  )
+
+  const { data: publicUser } = await serviceClient
     .from('users')
     .select('role_id, roles(name)')
     .eq('id', user.id)
     .single()
 
-  const roleName =
-    (publicUser?.roles as { name: string } | null)?.name ?? 'Member'
+  const rolesField = publicUser?.roles as { name: string } | { name: string }[] | null | undefined
+  const roleName = (Array.isArray(rolesField) ? rolesField[0] : rolesField)?.name ?? 'Member'
 
   const headersList = await headers()
   const pathname = headersList.get('x-pathname') ?? '/'

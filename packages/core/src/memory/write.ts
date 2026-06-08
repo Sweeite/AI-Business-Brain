@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash } from 'crypto'
 import type { SupabaseClient } from '../supabase/client.js'
 import type { MemoryType, SensitivityLevel, AuthorType } from '../schemas/index.js'
 import { generateEmbedding, EMBEDDING_MODEL, EMBEDDING_MODEL_VERSION } from './embed.js'

@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { hasRouteAccess } from '@brain/core'
+import { hasRouteAccess, createSupabaseClient } from '@brain/core'
 
 // Routes that never require role checking (public or handled by API layer)
 const isRoleCheckExempt = (pathname: string): boolean =>
@@ -56,10 +56,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Role-gated route check: look up the user's role and enforce access.
-  // Skipped for API routes (they enforce auth internally) and public paths.
+  // Role-gated route check: use service role to bypass RLS (anon client doesn't propagate auth.uid() to PostgREST in middleware).
   if (user && !isPublic && !isRoleCheckExempt(pathname)) {
-    const { data: publicUser } = await supabase
+    const serviceClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!,
+    )
+    const { data: publicUser } = await serviceClient
       .from('users')
       .select('role_id, roles(name)')
       .eq('id', user.id)
