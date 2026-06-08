@@ -32,7 +32,7 @@ boss.on('error', (error) => {
 async function start() {
   await boss.start()
   console.log('[worker] pg-boss started')
-  await scheduleSystemCrons(boss)
+  await scheduleSystemCrons(boss, supabase)
   registerAllJobs(boss, supabase)
   console.log('[worker] ready')
 }

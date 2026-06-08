@@ -129,6 +129,8 @@ function rowToMemory(row: RpcMemoryRow): Memory {
     content_hash: row.content_hash,
     embedding_model: row.embedding_model,
     embedding_model_version: row.embedding_model_version,
+    rtbf_flagged: false,
+    rtbf_flagged_at: null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }

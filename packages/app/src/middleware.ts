@@ -1,5 +1,13 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { hasRouteAccess } from '@brain/core'
+
+// Routes that never require role checking (public or handled by API layer)
+const isRoleCheckExempt = (pathname: string): boolean =>
+  pathname.startsWith('/api/') ||
+  pathname.startsWith('/onboarding') ||
+  pathname.startsWith('/_next') ||
+  pathname.startsWith('/favicon')
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -46,6 +54,26 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
+  }
+
+  // Role-gated route check: look up the user's role and enforce access.
+  // Skipped for API routes (they enforce auth internally) and public paths.
+  if (user && !isPublic && !isRoleCheckExempt(pathname)) {
+    const { data: publicUser } = await supabase
+      .from('users')
+      .select('role_id, roles(name)')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const rolesField = publicUser?.roles as { name: string } | { name: string }[] | null | undefined
+    const rolesObj = Array.isArray(rolesField) ? rolesField[0] : rolesField
+    const roleName = (rolesObj as { name: string } | null | undefined)?.name ?? 'Member'
+
+    if (!hasRouteAccess(roleName, pathname)) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
   }
 
   supabaseResponse.headers.set('x-pathname', pathname)

@@ -567,6 +567,8 @@ export type Database = {
           last_retrieved_at: string | null
           namespace: string
           retrieval_count: number
+          rtbf_flagged: boolean
+          rtbf_flagged_at: string | null
           search_vector: unknown
           sensitivity_level: string
           source_refs: Json | null
@@ -592,6 +594,8 @@ export type Database = {
           last_retrieved_at?: string | null
           namespace?: string
           retrieval_count?: number
+          rtbf_flagged?: boolean
+          rtbf_flagged_at?: string | null
           search_vector?: unknown
           sensitivity_level?: string
           source_refs?: Json | null
@@ -617,6 +621,8 @@ export type Database = {
           last_retrieved_at?: string | null
           namespace?: string
           retrieval_count?: number
+          rtbf_flagged?: boolean
+          rtbf_flagged_at?: string | null
           search_vector?: unknown
           sensitivity_level?: string
           source_refs?: Json | null

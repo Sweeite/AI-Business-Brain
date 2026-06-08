@@ -137,6 +137,15 @@ On first connect (`pageToken = null`): `GET /drive/v3/files` with `q=mimeType!='
 **Drive connector does NOT embed files into chunks.**
 `drive-sync.ts` passes `skipIndexInPlace: true` to `runRoutingPipeline`. Drive files that Gate 3 classifies as `index` are dropped — not written to the `chunks` table. Only `memory` outcomes (durable decisions/SOPs/preferences extracted from docs) are captured. All other Drive content is fetched live via `fetch_drive_file` / `search_drive` tool calls when the agent needs it. Do not remove `skipIndexInPlace: true` from drive-sync.
 
+**Mission Control admin routes use a shared `requireOwner()` helper.**
+`packages/app/src/lib/admin-auth.ts` exports `requireOwner()` which checks the caller is Owner/Admin and returns `{ actorId, serviceClient }`. All `/api/admin/` routes use this. Returns a `NextResponse` (401/403) on failure — call `isErrorResponse()` to branch.
+
+**Worker cron schedules are read from `system_config` at startup.**
+`packages/worker/src/jobs/schedule.ts` reads `<job>_schedule` and `<job>_active` keys from `system_config` before calling `boss.schedule()`. Falls back to hardcoded defaults if keys are missing. Schedule changes via Mission Control take effect on next worker restart. `scheduleSystemCrons()` now requires a `supabase` client parameter.
+
+**RTBF flagging uses `memories.rtbf_flagged` column (added in migration `20260611000001`).**
+Admin triggers "Request RTBF" → memories for that `author_id` are flagged. Admin then reviews flagged memories and selects which to invalidate via `POST /api/admin/users/[id]/rtbf/invalidate`. Invalidation uses standard invalidate-don't-overwrite pattern with audit_log `reason: 'rtbf'`. Auto-deletion without review is blocked by the UI.
+
 **`SYSTEM_USER_ID` constant is exported from `@brain/core`.**
 Value: `'00000000-0000-0000-0000-000000000001'`. Use it in the worker when constructing the `user` object for cron-triggered `executeAgent()` calls. The function uses this to set `actor_type: 'system'` in the audit log.
 
@@ -183,7 +192,7 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 | 8 | Gmail connector | ✅ Done | commit `0e0d448`; migration `20260608000001`; `packages/core/src/ingestion/`; app API routes; worker handlers |
 | 9 | Google Drive connector | ✅ Done | migration `20260609000001`; app API routes; worker handlers |
 | 10 | Query interface — Dashboard 1 | ✅ Done | migration `20260610000001`; tool dispatch wired in `packages/core/src/agent/execute.ts`; API routes `/api/query`, `/api/query/[id]/feedback`, `/api/memory/propose`; UI in `packages/app/src/components/query-interface.tsx` + `remember-modal.tsx` |
-| 11 | RBAC + Mission Control — Dashboard 11 | ⬜ | |
+| 11 | RBAC + Mission Control — Dashboard 11 | ✅ Done | migration `20260611000001`; `/mission-control` page with Users/Roles/Cron Jobs/Settings tabs; `packages/app/src/app/api/admin/` routes; `packages/app/src/lib/admin-auth.ts`; middleware wired with `hasRouteAccess()`; worker `schedule.ts` reads cron config from DB |
 | 12 | Memory Inspector — Dashboard 2 | ⬜ | |
 | 13 | Proactive Builder — Dashboard 5 | ⬜ | |
 | 14 | Agent Activity + Full Traces — Dashboard 4 | ⬜ | |

@@ -127,11 +127,15 @@ export interface Memory {
   content_hash: string
   embedding_model: string
   embedding_model_version: string
+  rtbf_flagged: boolean
+  rtbf_flagged_at: string | null
   created_at: string
   updated_at: string
 }
 
-export type MemoryInsert = Omit<Memory, 'search_vector' | 'created_at' | 'updated_at'> & {
+export type MemoryInsert = Omit<Memory, 'search_vector' | 'created_at' | 'updated_at' | 'rtbf_flagged' | 'rtbf_flagged_at'> & {
+  rtbf_flagged?: boolean
+  rtbf_flagged_at?: string | null
   created_at?: string
   updated_at?: string
 }
