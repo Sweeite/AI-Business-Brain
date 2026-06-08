@@ -194,7 +194,7 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 | 10 | Query interface — Dashboard 1 | ✅ Done | migration `20260610000001`; tool dispatch wired in `packages/core/src/agent/execute.ts`; API routes `/api/query`, `/api/query/[id]/feedback`, `/api/memory/propose`; UI in `packages/app/src/components/query-interface.tsx` + `remember-modal.tsx` |
 | 11 | RBAC + Mission Control — Dashboard 11 | ✅ Done | migration `20260611000001`; `/mission-control` page with Users/Roles/Cron Jobs/Settings tabs; `packages/app/src/app/api/admin/` routes; `packages/app/src/lib/admin-auth.ts`; middleware wired with `hasRouteAccess()`; worker `schedule.ts` reads cron config from DB |
 | 12 | Memory Inspector — Dashboard 2 | ✅ Done | 6 new files; `GET /api/memory`, `POST /api/memory/[id]/invalidate`, `POST /api/memory/[id]/edit`, `PATCH /api/memory/[id]/broaden`; `/memory` page + `memory-inspector-client.tsx` |
-| 13 | Proactive Builder — Dashboard 5 | ⬜ | |
+| 13 | Proactive Builder — Dashboard 5 | ✅ Done | commit `55247a1`; `/proactive` page; `packages/app/src/components/proactive/`; `packages/app/src/app/api/routines/`; worker `routine-run.ts` + `routine-schedule-sync.ts` |
 | 14 | Agent Activity + Full Traces — Dashboard 4 | ⬜ | |
 | 15 | Self-improvement loop + dashboard — Dashboard 6 | ⬜ | |
 | 16 | Memory consolidation cron | ⬜ | Episodic → semantic, watermark guard, near-duplicate check |
