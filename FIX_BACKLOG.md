@@ -12,73 +12,71 @@ These items were discovered while working through `QA_CHECKPOINTS.md` against is
 
 ### Bugs
 
-| ID | Checkpoint | Severity | Description |
-|----|-----------|----------|-------------|
-| QA1-B1 | CP3 | High | Deactivate user uses browser `confirm()` — needs an in-app modal |
-| QA1-B2 | CP3 | High | No way to reactivate a deactivated user — add a "Reactivate" action |
-| QA1-B3 | CP4 | Medium | RTBF "Invalidate selected" button stays bright red when nothing is selected — should appear visually disabled |
-| QA1-B4 | CP5 | High | Delete role uses browser `confirm()` — needs in-app modal (same global pattern fix as QA1-B1) |
-| QA1-B5 | CP7 | High | Source filter throws 500 — `operator does not exist: jsonb ~~* unknown` on `GET /api/memory?source=gmail` and `?source=google_drive` |
-| QA1-B6 | CP7 | Low | Date range filter has no reset button — user must clear both fields manually |
-| QA1-B7 | CP9 | High | Memory "Invalidate" in Inspector uses browser `confirm()` — same global fix as QA1-B1 |
-| QA1-B8 | CP11 | High | Worker crashes when writing a memory: `null value in column "utility_score" of relation "memories" violates not-null constraint` |
-| QA1-B9 | CP11 | High | Delete routine only works on already-deactivated routines — deleting an active routine silently fails; deactivating then trying to delete also fails |
-| QA1-B10 | CP11 | Low | "Run now" button stays fully vibrant when routine is disabled — should be visually greyed out |
+| ID | Status | Checkpoint | Severity | Description | Fix |
+|----|--------|-----------|----------|-------------|-----|
+| QA1-B1 | ✅ Fixed | CP3 | High | Deactivate user uses browser `confirm()` | Shared `ConfirmModal` component wired in `users-tab.tsx` |
+| QA1-B2 | ✅ Fixed | CP3 | High | No way to reactivate a deactivated user | New `POST /api/admin/users/[id]/reactivate` + Reactivate button in Users tab |
+| QA1-B3 | ✅ Fixed | CP4 | Medium | RTBF Invalidate button stays bright red when nothing selected | `opacity: 0.45 / cursor: not-allowed` when `rtbfSelected.size === 0` |
+| QA1-B4 | ✅ Fixed | CP5 | High | Delete role uses browser `confirm()` | `ConfirmModal` wired in `roles-tab.tsx` |
+| QA1-B5 | ✅ Fixed | CP7 | High | Source filter throws 500 — `jsonb ~~* unknown` | Changed to `.contains('source_refs', { connector: source })` — correct key + `@>` operator |
+| QA1-B6 | ✅ Fixed | CP7 | Low | Date range filter has no reset button | × clear button shown when either date field has a value |
+| QA1-B7 | ✅ Fixed | CP9 | High | Memory Invalidate uses browser `confirm()` / `alert()` | `ConfirmModal` wired in `memory-inspector-client.tsx`; errors now use `setError` |
+| QA1-B8 | ✅ Fixed | CP11 | High | Worker crashes writing memory: `utility_score NOT NULL` constraint | Migration `20260612000001` drops the erroneous NOT NULL on `memories.utility_score` |
+| QA1-B9 | ✅ Fixed | CP11 | High | Delete routine silently fails for routines with run history | Migration `20260612000002` changes FK to `ON DELETE SET NULL`; client now shows error banner on failed delete |
+| QA1-B10 | ✅ Fixed | CP11 | Low | Run now button stays vibrant when routine is disabled | `opacity: 0.45` applied when `!r.is_active` |
 
 ---
 
 ### Polish / UX Improvements
 
-| ID | Checkpoint | Description |
-|----|-----------|-------------|
-| QA1-U1 | CP5 | Permission node editor needs a predefined selector with names and descriptions — raw key/value input is not user-friendly |
-| QA1-U2 | CP10 | Custom cron expression field is not accessible to non-technical users — needs a visual schedule builder (e.g. "Every Monday at 9am") |
-| QA1-U3 | CP10 | Routine enable/disable toggle is a plain blue dot — needs visual polish |
+| ID | Status | Checkpoint | Description | Fix |
+|----|--------|-----------|-------------|-----|
+| QA1-U1 | ⏳ Deferred | CP5 | Permission node editor needs predefined selector with names/descriptions | Issue #23 — blocked on planning issue #25 |
+| QA1-U2 | ⏳ Deferred | CP10 | Custom cron expression needs a visual schedule builder | Issue #24 — blocked on planning issue #25 |
+| QA1-U3 | ✅ Fixed | CP10 | Routine toggle is a plain blue dot — needs visual polish | Toggle now renders a sliding white dot with `box-shadow` affordance |
 
 ---
 
 ### Access / Routing Issues
 
-| ID | Checkpoint | Description |
-|----|-----------|-------------|
-| QA1-A1 | CP8 | `/memory` redirects Members to `/query` — Members cannot reach the Memory Inspector at all, so member-clearance security checks (CP8 items 3 and 5) could not be fully tested |
-| QA1-A2 | CP12 | `POST /api/memory/propose` is inaccessible to Members because `/memory` is blocked — same root cause as QA1-A1 |
+| ID | Status | Checkpoint | Description | Fix |
+|----|--------|-----------|-------------|-----|
+| QA1-A1 | ✅ Fixed | CP8 | `/memory` redirects Members to `/query` | Added `/memory` to `MEMBER_NAV` in `permissions.ts`; edit actions already gated behind `isAdmin` |
+| QA1-A2 | ✅ Fixed | CP12 | `POST /api/memory/propose` inaccessible to Members | Same root cause as A1 — resolved by A1 fix |
 
 ---
 
 ### Needs Retest / Uncertain
 
-| ID | Checkpoint | Description |
-|----|-----------|-------------|
-| QA1-R1 | CP9 | Audit log entries for Invalidate, Edit, and Broaden mutations — believed working but needs a direct DB query to confirm all three action types are present |
-| QA1-R2 | CP12 | Worker logs show Gmail and Google Drive errors — capture and triage after QA1-B8 is fixed |
+| ID | Status | Checkpoint | Description |
+|----|--------|-----------|-------------|
+| QA1-R1 | ⚠️ Needs retest | CP9 | Audit log entries for Invalidate, Edit, and Broaden — believed working but needs a direct DB query to confirm all three `action_type` values present |
+| QA1-R2 | ⚠️ Needs retest | CP12 | Worker logs showed Gmail and Google Drive errors — B8 is now fixed; retest with worker running and check logs for remaining connector errors |
 
 ---
 
-### Known Gaps (from code review — pre-QA)
+### Known Gaps
 
-These diverge from the issue acceptance criteria and need a decision: fix before shipping, accept as-is, or defer.
-
-| ID | Issue | AC Requirement | Current State | Options |
-|----|-------|---------------|---------------|---------|
-| QA1-G1 | #11 | "Role stripped on deactivation" | `role_id` is NOT cleared on deactivate — only `is_active = false` is set | Intentional (preserve history) or missing step? Decide and document |
-| QA1-G2 | #11 | Cron schedule changes take effect immediately | Worker reads `system_config` at startup — restart required for new schedule to apply | Add a note in the Crons UI warning that schedule changes require a worker restart |
-| QA1-G3 | #12 | Filter memories by entity (client, project, person) | Not implemented in UI or API | Implement or defer to a future issue |
-| QA1-G4 | #13 | Test run displays output | Output shown in run history via polling, not inline in a modal | Acceptable for async jobs — document expected UX in product notes |
+| ID | Status | Issue | AC Requirement | Decision |
+|----|--------|-------|---------------|----------|
+| QA1-G1 | 📝 Intentional | #11 | "Role stripped on deactivation" | `role_id` preserved for audit history — `is_active = false` is the signal. Documented in `deactivate/route.ts`. |
+| QA1-G2 | ✅ Already done | #11 | Schedule changes take effect immediately | Restart note already present in `crons-tab.tsx` lines 109–111. |
+| QA1-G3 | ⏳ Deferred | #12 | Filter by entity (client, project, person) | Not implemented — deferred to a future issue. |
+| QA1-G4 | 📝 Accepted | #13 | Test run displays output inline | Output shown in run history via polling — acceptable UX for async jobs. |
 
 ---
 
-### Fix priority order (suggested)
+### Outstanding items
 
-1. **QA1-B8** — worker crash on `utility_score` blocks all routine execution
-2. **QA1-B5** — source filter 500 breaks a core Memory Inspector filter
-3. **QA1-B9** — delete routine flow broken for active routines
-4. **QA1-B1 / QA1-B4 / QA1-B7** — global: replace all browser `confirm()` dialogs with in-app modals
-5. **QA1-B2** — reactivate user flow
-6. **QA1-B3 / QA1-B10** — disabled-state visual polish
-7. **QA1-B6** — date range reset
-8. **QA1-U1 / QA1-U2 / QA1-U3** — UX improvements
-9. **QA1-G1–G4** — gap decisions
+Two items need attention in QA round 2:
+
+- **QA1-R1** — run a DB query to confirm `audit_log` has `action_type` = `memory.invalidated`, `memory.edited`, and something for broaden after doing each mutation as an Owner
+- **QA1-R2** — start the worker, run a routine, and check worker logs for any remaining Gmail / Drive connector errors now that the `utility_score` crash is fixed
+
+Two items are deferred to future issues:
+
+- **QA1-U1** — permission node selector (issue #23, blocked on planning #25)
+- **QA1-U2** — visual cron builder (issue #24, blocked on planning #25)
 
 ---
 
