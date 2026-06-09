@@ -37,7 +37,7 @@ export async function POST(
     id: crypto.randomUUID(),
     action_type: 'memory_invalidated',
     actor_id: actorId,
-    actor_type: 'human',
+    actor_type: 'user',
     target_type: 'memory',
     target_id: id,
     metadata: { memory_id: id },

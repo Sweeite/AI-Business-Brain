@@ -68,7 +68,7 @@ export async function POST(
       valid_to: null,
       retrieval_count: 0,
       last_retrieved_at: null,
-      utility_score: 0,
+      utility_score: null,
     })
 
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 })
@@ -78,7 +78,7 @@ export async function POST(
       id: crypto.randomUUID(),
       action_type: 'memory_invalidated',
       actor_id: actorId,
-      actor_type: 'human',
+      actor_type: 'user',
       target_type: 'memory',
       target_id: id,
       metadata: { memory_id: id, reason: 'edited', replaced_by: newId },
@@ -87,7 +87,7 @@ export async function POST(
       id: crypto.randomUUID(),
       action_type: 'memory_created',
       actor_id: actorId,
-      actor_type: 'human',
+      actor_type: 'user',
       target_type: 'memory',
       target_id: newId,
       metadata: { memory_id: newId, replaces: id },

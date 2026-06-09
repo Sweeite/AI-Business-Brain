@@ -575,7 +575,7 @@ export type Database = {
           status: string
           type: string
           updated_at: string
-          utility_score: number
+          utility_score: number | null
           valid_from: string
           valid_to: string | null
           zone: string | null
@@ -602,7 +602,7 @@ export type Database = {
           status?: string
           type: string
           updated_at?: string
-          utility_score?: number
+          utility_score?: number | null
           valid_from?: string
           valid_to?: string | null
           zone?: string | null
@@ -629,7 +629,7 @@ export type Database = {
           status?: string
           type?: string
           updated_at?: string
-          utility_score?: number
+          utility_score?: number | null
           valid_from?: string
           valid_to?: string | null
           zone?: string | null

@@ -57,7 +57,7 @@ export async function PATCH(
     id: crypto.randomUUID(),
     action_type: 'memory_sensitivity_broadened',
     actor_id: actorId,
-    actor_type: 'human',
+    actor_type: 'user',
     target_type: 'memory',
     target_id: id,
     metadata: {

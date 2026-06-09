@@ -197,6 +197,138 @@ Log in as Owner for all of these.
 
 ---
 
-## Done
+## Round 1 — Done
 
-All 12 checkpoints complete. Open `QA_PLAN.md` → "Known Gaps" section for the 4 items that need a decision before this is fully closed.
+All 12 checkpoints complete. Bugs extracted to `FIX_BACKLOG.md`. Fixes committed `b2db68d`.
+
+---
+
+# QA Round 2 — Verify QA1 Fixes
+
+> Scope: only the items that changed. Not a full re-run.
+> Prerequisites: app running, worker running, `supabase migration list` clean, Owner + Member accounts available.
+
+---
+
+## Checkpoint 13 — Worker no longer crashes writing memories (B8) (5 min)
+
+- Start the worker (`pnpm --filter @brain/worker dev`) — starts without error
+- Trigger a routine that causes a `propose_memory` tool call (or Run now on any "Save to memory" routine)
+- Worker run completes — no `utility_score NOT NULL` crash in logs
+- Check `memories` table — new row has `utility_score = null`, `status = 'active'`
+- Run card in Proactive Builder shows `completed` (green), not `failed`
+
+---
+
+## Checkpoint 14 — Delete routine with run history works (B9) (5 min)
+
+- Find a routine with at least one run in its history (or click Run now to create one)
+- Click Delete → Confirm on an **active** routine with run history — routine disappears from the list
+- Check `job_runs` in DB — rows still exist but `routine_id = null`
+- Delete a routine with **no** run history — still works as before
+- If a delete fails for any reason — red error banner appears in the UI (no silent failure)
+
+---
+
+## Checkpoint 15 — Source filter no longer 500s (B5) (5 min)
+
+Log in as Owner, go to `/memory`.
+
+- Set source filter to "Gmail" — `GET /api/memory?source=gmail` returns 200; only Gmail memories shown (0 results is fine, 500 is not)
+- Set source filter to "Google Drive" — returns 200 with Drive memories or 0 results; no error box
+- Clear the source filter — all memories return
+- Combine source filter with another filter (e.g. status = Active) — both apply, no 500
+
+---
+
+## Checkpoint 16 — Member can access Memory Inspector (A1 / A2) (10 min)
+
+Log in as a **Member** user.
+
+- Visit `/memory` — page loads (not redirected to `/query`)
+- Memory cards are visible, filtered to Member's clearance — no `leadership` or `management` memories visible
+- Call `GET /api/memory?sensitivity_level=leadership` manually — returns 0 results (RLS enforces clearance)
+- No Edit / Invalidate / Broaden buttons appear on any card
+- `Memory Inspector` appears in the Member's sidebar nav
+- Submit a memory proposal via the Remember modal on `/` — `POST /api/memory/propose` returns 200, proposal has `status = 'pending_review'`
+
+---
+
+## Checkpoint 17 — In-app confirm modals everywhere (B1, B4, B7) (10 min)
+
+Log in as Owner. Confirm **no browser `confirm()` or `alert()` dialogs appear anywhere**.
+
+- Click "Deactivate" on an active user — in-app modal appears with "Deactivate user" title, Cancel + red Deactivate buttons
+- Click Cancel — modal closes; user remains active
+- Click Deactivate and confirm — modal closes; row shows "Former employee" badge
+- Click Delete on a role — in-app "Delete role" modal appears
+- Confirm delete — role removed from grid; no browser popup
+- Click Invalidate on a memory in Memory Inspector — in-app modal appears with a truncated content preview
+- Click Cancel — modal closes; memory remains active
+- Confirm invalidate — memory disappears from active list
+- Simulate a network error on invalidate — error shown in the page error box, not a browser `alert()`
+
+---
+
+## Checkpoint 18 — Reactivate user (B2) (10 min)
+
+- Find a deactivated user — row shows "Former employee" badge + two buttons: "Reactivate" and "RTBF Review" side by side
+- Click "Reactivate" — in-app confirm modal appears
+- Confirm — row shows "Active" badge; buttons revert to "Deactivate"
+- Check `public.users` — `is_active = true`
+- Check `auth.users` in Supabase dashboard — `banned_until` is null or cleared
+- Confirm connections and routines are **not** auto-restored (user must reconnect/re-enable manually)
+- Log in as the reactivated user — login succeeds
+- Check `audit_log` — entry with `action_type = 'user.reactivated'`, correct `actor_id` and `target_id`
+
+---
+
+## Checkpoint 19 — Visual polish (B3, B6, B10, U3) (5 min)
+
+Quick visual scan — no DB queries needed.
+
+- Open RTBF modal with nothing selected — "Invalidate selected" button appears faded / low-opacity
+- Select one memory — button becomes fully opaque red
+- Set a date range in Memory Inspector — × button appears next to the date inputs
+- Click × — both date fields clear immediately
+- Toggle a routine off in Proactive Builder — "Run now" button appears faded (~45% opacity)
+- Toggle the routine back on — "Run now" returns to full opacity
+- Inspect the toggle — shows a white sliding dot; active = blue with soft shadow; inactive = grey
+
+---
+
+## Checkpoint 20 — Audit log spot-check (R1) (10 min)
+
+Run these in the Supabase dashboard SQL editor or `supabase db query --linked`.
+
+- Invalidate a memory as Owner, then query:
+  `SELECT action_type, actor_id, target_type, target_id FROM audit_log WHERE action_type = 'memory.invalidated' ORDER BY id DESC LIMIT 3;`
+  — at least one row; `target_type = 'memory'`
+- Edit a memory (change its content), then query:
+  `SELECT action_type FROM audit_log WHERE action_type ILIKE 'memory.edit%' ORDER BY id DESC LIMIT 3;`
+  — entry present
+- Broaden a memory's sensitivity level, then query:
+  `SELECT action_type FROM audit_log WHERE action_type ILIKE '%broaden%' ORDER BY id DESC LIMIT 3;`
+  — entry present
+- Confirm all three rows have non-null `actor_id` and `target_id`
+
+> If any of these return 0 rows, log as QA2-R1 with the missing `action_type`.
+
+---
+
+## Checkpoint 21 — Worker connector errors (R2) (5 min)
+
+- Start the worker fresh — watch startup logs; no crash; `[worker] ready` logged
+- Click "Run now" on an active routine — run completes; no `utility_score` crash in logs
+- Check worker logs for Gmail/Drive errors — 401 = expired token (expected if not recently connected); 500 or unhandled exception = new bug
+- If 401 errors appear — mark as QA2-R2; reconnect the connector or manually trigger `gmail-token-refresh` cron
+
+---
+
+## Checkpoint 22 — Regression spot-check (5 min)
+
+- `POST /api/query` with a question — returns answer with provenance labels; no regression
+- `/mission-control` as Owner — all 4 tabs load
+- `/mission-control` as Member — redirects to `/` (unchanged by QA1 fixes)
+- Create a new routine via the wizard — routine appears in list; Run now works
+- `supabase migration list` — all migrations applied; none pending
