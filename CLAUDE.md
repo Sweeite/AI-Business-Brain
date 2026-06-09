@@ -16,14 +16,14 @@ Before doing any work, read `CONTEXT.md`. It contains:
 |------|---------|
 | `CONTEXT.md` | Single source of truth for architecture, build state, and QA state |
 | `ai-business-brain-prd.md` | Product requirements — final say on behaviour |
-| `QA_PLAN.md` | 136 test cases across issues #11–13, plus known gaps G1–G4 |
-| `QA_CHECKPOINTS.md` | 12 checkpoints with inline pass/fail notes from QA round 1 |
-| `FIX_BACKLOG.md` | All bugs/UX issues extracted from QA, categorised as QA1 |
+| `qa/TEST_CASES.md` | 136 test cases across issues #11–13, plus known gaps G1–G4 |
+| `qa/CHECKPOINTS.md` | QA round 1 (CP1–12) and round 2 (CP13–22) — all complete |
+| `qa/FIX_BACKLOG.md` | All bugs/UX issues extracted from QA (QA1 + QA2), deferred items |
 
 ## Fix backlog references
 
-When the user says "fix QA1 tasks" or mentions a QA1 ID (e.g. QA1-B5, QA1-U2):
-1. Read `FIX_BACKLOG.md` — find the exact description under the QA1 section
+When the user says "fix QA1 tasks" or mentions a QA ID (e.g. QA1-B5, QA2-B1):
+1. Read `qa/FIX_BACKLOG.md` — find the exact description under the relevant section
 2. Read the relevant source files before touching anything
 3. Fix only what the ID describes — no scope creep
 
@@ -53,7 +53,7 @@ supabase db query --linked "<sql>"    # run ad-hoc SQL against the remote DB
 supabase gen types typescript --linked > packages/core/src/db/database.types.ts
 ```
 
-No test runner is configured — QA is manual using `QA_PLAN.md` and `QA_CHECKPOINTS.md`.
+No test runner is configured — QA is manual using `qa/TEST_CASES.md` and `qa/CHECKPOINTS.md`.
 
 ---
 

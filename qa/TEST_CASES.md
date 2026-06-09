@@ -1,10 +1,9 @@
-# QA Plan — Issues #11, #12, #13
+# QA Test Cases — Issues #11, #12, #13
 
+> **Status: historical reference.** QA rounds 1 and 2 are complete. See `qa/CHECKPOINTS.md` for pass/fail results and `qa/FIX_BACKLOG.md` for all bugs found and their fixes.
+>
 > Covers: RBAC + Mission Control (Dashboard 11), Memory Inspector (Dashboard 2), Proactive Builder (Dashboard 5).
 > Written against the acceptance criteria in each issue and the actual implementation in the codebase.
->
-> **QA round 1** completed 2026-06-08. Results in `QA_CHECKPOINTS.md`. Bugs extracted to `FIX_BACKLOG.md`.
-> **QA round 2** plan is at the bottom of this file — covers only the items that changed in the QA1 fix pass.
 
 ---
 
@@ -338,5 +337,3 @@ After completing issues #11–13, confirm these earlier features still work:
 - Middleware route protection — unauthenticated users redirected to `/login` for all protected routes
 
 ---
-
-> **QA Round 2** checkpoints are in `QA_CHECKPOINTS.md` (Checkpoints 13–22). Detailed test case tables for QA2 live here if needed for reference — see `FIX_BACKLOG.md` for per-item fix status.

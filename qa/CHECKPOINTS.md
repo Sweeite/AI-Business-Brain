@@ -1,6 +1,9 @@
 # QA Checkpoints
 
-Work through these in order. Each one is 5–15 minutes. Full detail for every check is in `QA_PLAN.md`.
+> **Status: complete.** Round 1 (CP1–12) completed 2026-06-08. Round 2 (CP13–22) completed 2026-06-09.
+> Full test case detail is in `qa/TEST_CASES.md`. Bug history is in `qa/FIX_BACKLOG.md`.
+
+When running a future QA round, work through checkpoints in order. Each one is 5–15 minutes.
 
 ---
 

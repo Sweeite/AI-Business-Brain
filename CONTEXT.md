@@ -219,14 +219,16 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 
 **QA round 1 completed 2026-06-08** — covered issues #11, #12, #13 (all ✅ Done above).
 
-Key files:
-- `QA_PLAN.md` — 136 test cases across #11/#12/#13, plus 4 known gaps (G1–G4)
-- `QA_CHECKPOINTS.md` — 12 checkpoints, all marked Done with inline notes per checkpoint
-- `FIX_BACKLOG.md` — all bugs, UX issues, access problems, and gaps extracted and categorised as **QA1**
+QA files live in the `qa/` folder:
+- `qa/TEST_CASES.md` — 136 test cases across #11/#12/#13, plus 4 known gaps (G1–G4)
+- `qa/CHECKPOINTS.md` — QA round 1 (CP1–12) and round 2 (CP13–22), all complete
+- `qa/FIX_BACKLOG.md` — all bugs, UX issues, access problems, and gaps (QA1 + QA2)
 
-When the user says "fix QA1 tasks" or references a QA1 ID (e.g. QA1-B5), read `FIX_BACKLOG.md` for the full description before touching any code.
+When the user says "fix QA tasks" or references a QA ID (e.g. QA1-B5, QA2-B1), read `qa/FIX_BACKLOG.md` for the full description before touching any code.
 
 **QA1 fixes applied 2026-06-09** — all bugs and access issues resolved. Deferred: U1 (issue #23), U2 (issue #24), planning session (issue #25). G1 (role_id on deactivation) documented as intentional.
+
+**QA2 fixes applied 2026-06-09** — 2 new bugs found and fixed: QA2-B1 (`actor_type: 'human'` → `'user'` in all three memory mutation audit log inserts), QA2-B2 (`utility_score: 0` → `null` in edit route).
 
 Migrations added: `20260612000001_fix_utility_score.sql` (B8), `20260612000002_fix_routine_fk.sql` (B9).
 New: `ConfirmModal` component, `POST /api/admin/users/[userId]/reactivate` route.
