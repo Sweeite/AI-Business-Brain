@@ -52,7 +52,7 @@ All ✅ Fixed 2026-06-09.
 |----|-------|----------------|----------|
 | QA1-G1 | #11 | "Role stripped on deactivation" | Intentional — `role_id` preserved for audit history; `is_active = false` is the signal. Documented in `deactivate/route.ts`. |
 | QA1-G2 | #11 | Schedule changes take effect immediately | Restart required — note already surfaced in `crons-tab.tsx`. Accepted. |
-| QA1-G3 | #12 | Filter by entity (client, project, person) | Not implemented — deferred to a future issue. |
+| QA1-G3 | #12 | Filter by entity (client, project, person) | Not implemented — issue #26, blocked on planning issue #25. |
 | QA1-G4 | #13 | Test run displays output inline | Output shown in run history via polling. Acceptable UX for async jobs. |
 
 ---
@@ -78,4 +78,4 @@ Also confirmed in QA2:
 |----|-------------|-------|
 | QA1-U1 | Predefined permission node selector in Roles tab | #23 (planning: #25) |
 | QA1-U2 | Visual cron schedule builder in Routine Wizard | #24 (planning: #25) |
-| QA1-G3 | Entity filter (client, project, person) in Memory Inspector | Future issue |
+| QA1-G3 | Entity filter (client, project, person) in Memory Inspector | #26 (planning: #25) |
