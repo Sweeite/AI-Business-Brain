@@ -12,7 +12,6 @@ const MEMBER_NAV: NavItem[] = [
 
 const MANAGER_NAV: NavItem[] = [
   ...MEMBER_NAV,
-  { label: 'Memory Inspector', href: '/memory' },
   { label: 'Agent Activity', href: '/activity' },
 ]
 

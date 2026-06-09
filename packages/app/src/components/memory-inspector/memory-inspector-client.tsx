@@ -135,9 +135,35 @@ export function MemoryInspectorClient({ isAdmin }: Props) {
     }
   }
 
+  const DEFAULT_FILTERS: Filters = {
+    type: '',
+    namespace: '',
+    sensitivity_level: '',
+    status: 'active',
+    source: '',
+    search: '',
+    date_from: '',
+    date_to: '',
+  }
+
+  const hasActiveFilters =
+    filters.type !== '' ||
+    filters.namespace !== '' ||
+    filters.sensitivity_level !== '' ||
+    filters.status !== 'active' ||
+    filters.source !== '' ||
+    filters.search !== '' ||
+    filters.date_from !== '' ||
+    filters.date_to !== ''
+
   function onFilterChange(key: keyof Filters, value: string) {
     setPage(0)
     setFilters((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function clearFilters() {
+    setPage(0)
+    setFilters(DEFAULT_FILTERS)
   }
 
   function toggleExpand(id: string) {
@@ -293,6 +319,14 @@ export function MemoryInspectorClient({ isAdmin }: Props) {
             title="Clear date range"
           >
             ×
+          </button>
+        )}
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            style={styles.clearFiltersBtn}
+          >
+            Clear filters
           </button>
         )}
       </div>
@@ -504,6 +538,17 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '4px',
     cursor: 'pointer',
     color: '#6b7280',
+  },
+  clearFiltersBtn: {
+    padding: '6px 12px',
+    fontSize: '12px',
+    background: '#f3f4f6',
+    border: '1px solid #d1d5db',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    color: '#374151',
+    fontWeight: 500,
+    whiteSpace: 'nowrap' as const,
   },
   errorBox: {
     backgroundColor: '#fef2f2',
