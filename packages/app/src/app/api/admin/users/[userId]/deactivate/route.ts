@@ -10,7 +10,8 @@ export async function POST(
   const { actorId, serviceClient } = ctx
   const { userId } = await params
 
-  // 1. Mark user inactive
+  // 1. Mark user inactive. role_id is intentionally preserved for audit history —
+  //    the is_active flag is the deactivation signal, not role removal.
   await serviceClient.from('users').update({ is_active: false }).eq('id', userId)
 
   // 2. Ban the auth user — 876000h (~100 years) revokes all existing sessions

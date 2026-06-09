@@ -7,6 +7,7 @@ export interface NavItem {
 // Each role sees exactly these items. Higher roles include lower-role items.
 const MEMBER_NAV: NavItem[] = [
   { label: 'Query', href: '/' },
+  { label: 'Memory Inspector', href: '/memory' },
 ]
 
 const MANAGER_NAV: NavItem[] = [

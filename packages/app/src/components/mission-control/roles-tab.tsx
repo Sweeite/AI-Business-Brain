@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ConfirmModal } from '@/components/confirm-modal'
 import type { RoleRow } from './mission-control-client'
 
 const CLEARANCE_OPTIONS = ['public', 'internal', 'management', 'leadership']
@@ -46,6 +47,8 @@ export function RolesTab({ initialRoles }: Props) {
   const [edit, setEdit] = useState<EditState | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const openCreate = () => setEdit({ id: null, name: '', clearance_level: 'internal', permissions: [] })
   const openEdit = (role: RoleRow) => setEdit({
@@ -85,16 +88,23 @@ export function RolesTab({ initialRoles }: Props) {
     setEdit(null)
   }
 
-  const handleDelete = async (roleId: string) => {
-    if (!confirm('Delete this role?')) return
+  const handleDelete = (roleId: string) => {
+    setDeleteTarget(roleId)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    setDeleteLoading(true)
     setError('')
-    const res = await fetch(`/api/admin/roles/${roleId}`, { method: 'DELETE' })
+    const res = await fetch(`/api/admin/roles/${deleteTarget}`, { method: 'DELETE' })
+    setDeleteLoading(false)
+    setDeleteTarget(null)
     if (!res.ok) {
       const data = await res.json() as { error?: string }
       setError(data.error ?? 'Delete failed')
       return
     }
-    setRoles((prev) => prev.filter((r) => r.id !== roleId))
+    setRoles((prev) => prev.filter((r) => r.id !== deleteTarget))
   }
 
   const addPermEntry = () => setEdit((prev) => prev ? { ...prev, permissions: [...prev.permissions, { key: '', value: true }] } : prev)
@@ -130,6 +140,18 @@ export function RolesTab({ initialRoles }: Props) {
           </div>
         ))}
       </div>
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete role"
+          message="This will permanently delete the role. Users currently assigned to it will lose their role association."
+          confirmLabel="Delete"
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+          dangerous
+          loading={deleteLoading}
+        />
+      )}
 
       {/* Edit / Create modal */}
       {edit && (

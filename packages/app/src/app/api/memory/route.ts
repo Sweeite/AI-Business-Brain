@@ -38,7 +38,8 @@ export async function GET(req: NextRequest) {
   if (dateFrom) query = query.gte('created_at', dateFrom)
   if (dateTo) query = query.lte('created_at', dateTo)
   if (source) {
-    query = query.filter('source_refs::text', 'ilike', `%"connector_type":"${source}"%`)
+    // Use jsonb @> (contains) operator — source_refs stores { connector: 'gmail'|'google_drive', ... }
+    query = query.contains('source_refs', { connector: source })
   }
 
   const { data, error, count } = await query

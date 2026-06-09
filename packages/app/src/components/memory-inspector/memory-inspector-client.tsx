@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { ConfirmModal } from '@/components/confirm-modal'
 
 interface Memory {
   id: string
@@ -73,6 +74,7 @@ export function MemoryInspectorClient({ isAdmin }: Props) {
   const [editContent, setEditContent] = useState('')
   const [editLoading, setEditLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [invalidateTarget, setInvalidateTarget] = useState<Memory | null>(null)
   const [filters, setFilters] = useState<Filters>({
     type: '',
     namespace: '',
@@ -147,14 +149,14 @@ export function MemoryInspectorClient({ isAdmin }: Props) {
     })
   }
 
-  async function handleInvalidate(memory: Memory) {
-    if (!window.confirm(`Invalidate this memory?\n\n"${memory.content.slice(0, 120)}..."\n\nThis cannot be undone.`)) return
+  async function doInvalidate(memory: Memory) {
+    setInvalidateTarget(null)
     setActionLoading(memory.id)
     try {
       const resp = await fetch(`/api/memory/${memory.id}/invalidate`, { method: 'POST' })
       if (!resp.ok) {
         const data = await resp.json() as { error?: string }
-        alert(data.error ?? 'Failed to invalidate')
+        setError(data.error ?? 'Failed to invalidate')
         return
       }
       void fetchMemories(page)
@@ -284,6 +286,15 @@ export function MemoryInspectorClient({ isAdmin }: Props) {
           style={styles.filterDate}
           title="To date"
         />
+        {(filters.date_from || filters.date_to) && (
+          <button
+            onClick={() => { onFilterChange('date_from', ''); onFilterChange('date_to', '') }}
+            style={styles.clearDateBtn}
+            title="Clear date range"
+          >
+            ×
+          </button>
+        )}
       </div>
 
       {/* Error */}
@@ -348,7 +359,7 @@ export function MemoryInspectorClient({ isAdmin }: Props) {
                     Edit
                   </button>
                   <button
-                    onClick={() => { void handleInvalidate(memory) }}
+                    onClick={() => setInvalidateTarget(memory)}
                     style={styles.invalidateBtn}
                     disabled={actionLoading === memory.id}
                   >
@@ -398,6 +409,18 @@ export function MemoryInspectorClient({ isAdmin }: Props) {
             Next
           </button>
         </div>
+      )}
+
+      {/* Invalidate confirm modal */}
+      {invalidateTarget && (
+        <ConfirmModal
+          title="Invalidate memory"
+          message={`"${invalidateTarget.content.slice(0, 120)}${invalidateTarget.content.length > 120 ? '…' : ''}"\n\nThis sets the record to invalidated and cannot be undone.`}
+          confirmLabel="Invalidate"
+          onConfirm={() => { void doInvalidate(invalidateTarget) }}
+          onCancel={() => setInvalidateTarget(null)}
+          dangerous
+        />
       )}
 
       {/* Edit modal */}
@@ -471,6 +494,16 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid #d1d5db',
     borderRadius: '4px',
     fontSize: '13px',
+  },
+  clearDateBtn: {
+    padding: '4px 8px',
+    fontSize: '16px',
+    lineHeight: '1',
+    background: '#f3f4f6',
+    border: '1px solid #d1d5db',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    color: '#6b7280',
   },
   errorBox: {
     backgroundColor: '#fef2f2',

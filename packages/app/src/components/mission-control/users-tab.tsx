@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { ConfirmModal } from '@/components/confirm-modal'
 import type { UserRow, RoleRow } from './mission-control-client'
 
 interface RtbfMemory {
@@ -9,6 +10,13 @@ interface RtbfMemory {
   type: string
   sensitivity_level: string
   created_at: string
+}
+
+interface ConfirmState {
+  title: string
+  message: string
+  confirmLabel: string
+  onConfirm: () => void
 }
 
 interface Props {
@@ -23,6 +31,8 @@ export function UsersTab({ initialUsers, roles }: Props) {
   const [inviteError, setInviteError] = useState('')
   const [inviteSuccess, setInviteSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null)
+  const [confirmLoading, setConfirmLoading] = useState(false)
 
   // RTBF state
   const [rtbfUserId, setRtbfUserId] = useState<string | null>(null)
@@ -72,16 +82,46 @@ export function UsersTab({ initialUsers, roles }: Props) {
     )
   }, [roles])
 
-  const handleDeactivate = useCallback(async (userId: string) => {
-    if (!confirm('Deactivate this user? Their sessions will be revoked immediately and their routines disabled.')) return
-    setError('')
-    const res = await fetch(`/api/admin/users/${userId}/deactivate`, { method: 'POST' })
-    if (!res.ok) {
-      const data = await res.json() as { error?: string }
-      setError(data.error ?? 'Deactivation failed')
-      return
-    }
-    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, is_active: false } : u))
+  const handleDeactivate = useCallback((userId: string) => {
+    setConfirm({
+      title: 'Deactivate user',
+      message: 'Their sessions will be revoked immediately and their routines disabled. You can reactivate them later.',
+      confirmLabel: 'Deactivate',
+      onConfirm: async () => {
+        setConfirmLoading(true)
+        setError('')
+        const res = await fetch(`/api/admin/users/${userId}/deactivate`, { method: 'POST' })
+        setConfirmLoading(false)
+        setConfirm(null)
+        if (!res.ok) {
+          const data = await res.json() as { error?: string }
+          setError(data.error ?? 'Deactivation failed')
+          return
+        }
+        setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, is_active: false } : u))
+      },
+    })
+  }, [])
+
+  const handleReactivate = useCallback((userId: string) => {
+    setConfirm({
+      title: 'Reactivate user',
+      message: 'Their account will be restored. Connections and routines must be re-enabled manually.',
+      confirmLabel: 'Reactivate',
+      onConfirm: async () => {
+        setConfirmLoading(true)
+        setError('')
+        const res = await fetch(`/api/admin/users/${userId}/reactivate`, { method: 'POST' })
+        setConfirmLoading(false)
+        setConfirm(null)
+        if (!res.ok) {
+          const data = await res.json() as { error?: string }
+          setError(data.error ?? 'Reactivation failed')
+          return
+        }
+        setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, is_active: true } : u))
+      },
+    })
   }, [])
 
   const openRtbf = useCallback(async (userId: string) => {
@@ -119,7 +159,6 @@ export function UsersTab({ initialUsers, roles }: Props) {
       setRtbfError(data.error ?? 'Invalidation failed')
       return
     }
-    // Remove invalidated memories from the list
     setRtbfMemories((prev) => prev.filter((m) => !rtbfSelected.has(m.id)))
     setRtbfSelected(new Set())
   }
@@ -193,12 +232,20 @@ export function UsersTab({ initialUsers, roles }: Props) {
                     </button>
                   )}
                   {!user.is_active && (
-                    <button
-                      onClick={() => openRtbf(user.id)}
-                      style={styles.btnSecondary}
-                    >
-                      RTBF Review
-                    </button>
+                    <div style={styles.row}>
+                      <button
+                        onClick={() => handleReactivate(user.id)}
+                        style={styles.btnPrimary}
+                      >
+                        Reactivate
+                      </button>
+                      <button
+                        onClick={() => openRtbf(user.id)}
+                        style={styles.btnSecondary}
+                      >
+                        RTBF Review
+                      </button>
+                    </div>
                   )}
                 </td>
               </tr>
@@ -254,7 +301,11 @@ export function UsersTab({ initialUsers, roles }: Props) {
                 <button
                   onClick={handleRtbfInvalidate}
                   disabled={rtbfSelected.size === 0 || rtbfLoading}
-                  style={styles.btnDanger}
+                  style={{
+                    ...styles.btnDanger,
+                    opacity: rtbfSelected.size === 0 ? 0.45 : 1,
+                    cursor: rtbfSelected.size === 0 ? 'not-allowed' : 'pointer',
+                  }}
                 >
                   Invalidate {rtbfSelected.size > 0 ? `${rtbfSelected.size} selected` : 'selected'}
                 </button>
@@ -265,6 +316,19 @@ export function UsersTab({ initialUsers, roles }: Props) {
             )}
           </div>
         </div>
+      )}
+
+      {/* Confirm modal (deactivate / reactivate) */}
+      {confirm && (
+        <ConfirmModal
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel={confirm.confirmLabel}
+          onConfirm={confirm.onConfirm}
+          onCancel={() => setConfirm(null)}
+          dangerous={confirm.confirmLabel === 'Deactivate'}
+          loading={confirmLoading}
+        />
       )}
     </div>
   )

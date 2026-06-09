@@ -98,6 +98,7 @@ export function ProactiveBuilderClient({ initialRoutines, agentConfigs, isAdmin 
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
   const [runLoading, setRunLoading] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const selected = routines.find((r) => r.id === selectedId) ?? null
@@ -164,6 +165,7 @@ export function ProactiveBuilderClient({ initialRoutines, agentConfigs, isAdmin 
 
   async function handleDelete(id: string) {
     setDeleteLoading(id)
+    setDeleteError(null)
     try {
       const resp = await fetch(`/api/routines/${id}`, { method: 'DELETE' })
       if (resp.ok) {
@@ -172,6 +174,9 @@ export function ProactiveBuilderClient({ initialRoutines, agentConfigs, isAdmin 
           const remaining = routines.filter((r) => r.id !== id)
           setSelectedId(remaining[0]?.id ?? null)
         }
+      } else {
+        const data = await resp.json() as { error?: string }
+        setDeleteError(data.error ?? 'Delete failed')
       }
     } finally {
       setDeleteLoading(null)
@@ -219,6 +224,13 @@ export function ProactiveBuilderClient({ initialRoutines, agentConfigs, isAdmin 
         </button>
       </div>
 
+      {deleteError && (
+        <div style={styles.errorBanner}>
+          {deleteError}
+          <button onClick={() => setDeleteError(null)} style={styles.errorClose}>×</button>
+        </div>
+      )}
+
       <div style={styles.layout}>
         {/* Left panel — routine list */}
         <div style={styles.leftPanel}>
@@ -246,7 +258,9 @@ export function ProactiveBuilderClient({ initialRoutines, agentConfigs, isAdmin 
                     onChange={() => void handleToggle(r)}
                     style={styles.toggleInput}
                   />
-                  <span style={{ ...styles.toggleSlider, background: r.is_active ? '#2563eb' : '#d1d5db' }} />
+                  <span style={{ ...styles.toggleSlider, background: r.is_active ? '#2563eb' : '#d1d5db', boxShadow: r.is_active ? '0 0 0 3px rgba(37,99,235,0.15)' : 'none' }}>
+                    <span style={{ ...styles.toggleDot, transform: r.is_active ? 'translateX(18px)' : 'translateX(2px)' }} />
+                  </span>
                 </label>
               </div>
 
@@ -275,7 +289,7 @@ export function ProactiveBuilderClient({ initialRoutines, agentConfigs, isAdmin 
 
               <div style={styles.routineActions} onClick={(e) => e.stopPropagation()}>
                 <button
-                  style={styles.runBtn}
+                  style={{ ...styles.runBtn, opacity: (!r.is_active || runLoading === r.id) ? 0.45 : 1 }}
                   disabled={runLoading === r.id || !r.is_active}
                   onClick={() => void handleRunNow(r)}
                 >
@@ -466,8 +480,40 @@ const styles: Record<string, React.CSSProperties> = {
     height: 20,
     borderRadius: 10,
     display: 'block',
-    transition: 'background 0.2s',
+    transition: 'background 0.2s, box-shadow 0.2s',
     position: 'relative',
+  },
+  toggleDot: {
+    position: 'absolute',
+    top: 2,
+    left: 0,
+    width: 16,
+    height: 16,
+    borderRadius: '50%',
+    background: '#fff',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+    transition: 'transform 0.2s',
+    display: 'block',
+  },
+  errorBanner: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    background: '#fef2f2',
+    border: '1px solid #fca5a5',
+    color: '#b91c1c',
+    padding: '10px 16px',
+    borderRadius: 6,
+    fontSize: 13,
+    marginBottom: 16,
+  },
+  errorClose: {
+    background: 'none',
+    border: 'none',
+    fontSize: 18,
+    cursor: 'pointer',
+    color: '#b91c1c',
+    lineHeight: 1,
   },
   badges: {
     display: 'flex',

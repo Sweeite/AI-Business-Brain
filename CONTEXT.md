@@ -214,3 +214,19 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 4. Run `supabase migration list` to confirm migration state is clean.
 5. Build the issue, push a migration if needed (`supabase db push`), typecheck all packages, commit, close the issue.
 6. Update the progress table above (change ⬜ to ✅, add the commit hash).
+
+## QA state
+
+**QA round 1 completed 2026-06-08** — covered issues #11, #12, #13 (all ✅ Done above).
+
+Key files:
+- `QA_PLAN.md` — 136 test cases across #11/#12/#13, plus 4 known gaps (G1–G4)
+- `QA_CHECKPOINTS.md` — 12 checkpoints, all marked Done with inline notes per checkpoint
+- `FIX_BACKLOG.md` — all bugs, UX issues, access problems, and gaps extracted and categorised as **QA1**
+
+When the user says "fix QA1 tasks" or references a QA1 ID (e.g. QA1-B5), read `FIX_BACKLOG.md` for the full description before touching any code.
+
+**QA1 fixes applied 2026-06-09** — all bugs and access issues resolved. Deferred: U1 (issue #23), U2 (issue #24), planning session (issue #25). G1 (role_id on deactivation) documented as intentional.
+
+Migrations added: `20260612000001_fix_utility_score.sql` (B8), `20260612000002_fix_routine_fk.sql` (B9).
+New: `ConfirmModal` component, `POST /api/admin/users/[userId]/reactivate` route.
