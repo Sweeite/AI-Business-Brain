@@ -195,7 +195,7 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 | 11 | RBAC + Mission Control — Dashboard 11 | ✅ Done | migration `20260611000001`; `/mission-control` page with Users/Roles/Cron Jobs/Settings tabs; `packages/app/src/app/api/admin/` routes; `packages/app/src/lib/admin-auth.ts`; middleware wired with `hasRouteAccess()`; worker `schedule.ts` reads cron config from DB |
 | 12 | Memory Inspector — Dashboard 2 | ✅ Done | 6 new files; `GET /api/memory`, `POST /api/memory/[id]/invalidate`, `POST /api/memory/[id]/edit`, `PATCH /api/memory/[id]/broaden`; `/memory` page + `memory-inspector-client.tsx` |
 | 13 | Proactive Builder — Dashboard 5 | ✅ Done | commit `55247a1`; `/proactive` page; `packages/app/src/components/proactive/`; `packages/app/src/app/api/routines/`; worker `routine-run.ts` + `routine-schedule-sync.ts` |
-| 14 | Agent Activity + Full Traces — Dashboard 4 | ⬜ | |
+| 14 | Agent Activity + Full Traces — Dashboard 4 | ✅ Done | commit `6639f7c` |
 | 15 | Self-improvement loop + dashboard — Dashboard 6 | ⬜ | |
 | 16 | Memory consolidation cron | ⬜ | Episodic → semantic, watermark guard, near-duplicate check |
 | 17 | Memory decay cron | ⬜ | Utility score formula + invalidation |
