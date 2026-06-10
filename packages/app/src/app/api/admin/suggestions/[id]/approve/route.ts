@@ -30,8 +30,28 @@ export async function POST(
   const now = new Date().toISOString()
 
   // Apply the proposed change
-  if (changeType === 'agent_prompt_update' && suggestion.target_config_id) {
-    const configId = suggestion.target_config_id
+  if (changeType === 'agent_prompt_update') {
+    let configId = suggestion.target_config_id as string | null
+
+    // Fall back to name-based lookup — the agent emits agent_config_name but not a UUID
+    if (!configId) {
+      const configName = proposedChange.agent_config_name as string | undefined
+      if (!configName) {
+        return NextResponse.json(
+          { error: 'agent_prompt_update requires target_config_id or agent_config_name' },
+          { status: 400 }
+        )
+      }
+      const { data: found } = await serviceClient
+        .from('agent_configs')
+        .select('id')
+        .eq('name', configName)
+        .single()
+      if (!found) {
+        return NextResponse.json({ error: `Agent config '${configName}' not found` }, { status: 404 })
+      }
+      configId = found.id
+    }
 
     // Load current agent config
     const { data: currentConfig, error: configError } = await serviceClient
@@ -109,13 +129,17 @@ export async function POST(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const jsonValue = rawValue as any
 
-    const { error: configUpdateError } = await serviceClient
+    const { data: updatedRows, error: configUpdateError } = await serviceClient
       .from('system_config')
       .update({ value: jsonValue, updated_by: actorId, updated_at: now })
       .eq('key', key)
+      .select()
 
     if (configUpdateError) {
       return NextResponse.json({ error: configUpdateError.message }, { status: 500 })
+    }
+    if (!updatedRows || updatedRows.length === 0) {
+      return NextResponse.json({ error: `system_config key '${key}' not found` }, { status: 422 })
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
