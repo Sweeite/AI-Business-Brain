@@ -15,6 +15,7 @@ const SYSTEM_JOBS: JobDef[] = [
   { jobType: 'connector.sync',        label: 'Connector Sync',         scheduleKey: 'connector_sync_schedule',        activeKey: 'connector_sync_active' },
   { jobType: 'token.refresh',         label: 'Token Refresh',          scheduleKey: 'token_refresh_schedule',         activeKey: 'token_refresh_active' },
   { jobType: 'drive.webhook.renew',   label: 'Drive Webhook Renewal',  scheduleKey: 'drive_webhook_renew_schedule',   activeKey: 'drive_webhook_renew_active' },
+  { jobType: 'memory.decay',          label: 'Memory Decay',           scheduleKey: 'decay_cron_schedule',            activeKey: 'memory_decay_active' },
 ]
 
 interface RunHistoryRun {

@@ -10,6 +10,7 @@ const DEFAULTS: Record<string, string> = {
   [JOB_TYPES.DRIVE_WEBHOOK_RENEW]:   '0 1 * * *',
   [JOB_TYPES.IMPROVEMENT_ANALYSIS]:  '0 6 * * 1',
   [JOB_TYPES.MEMORY_CONSOLIDATION]:  '0 2 * * *',
+  [JOB_TYPES.MEMORY_DECAY]:          '0 3 * * 0',
 }
 
 const SCHEDULE_KEYS: Record<string, string> = {
@@ -19,6 +20,7 @@ const SCHEDULE_KEYS: Record<string, string> = {
   [JOB_TYPES.DRIVE_WEBHOOK_RENEW]:   'drive_webhook_renew_schedule',
   [JOB_TYPES.IMPROVEMENT_ANALYSIS]:  'improvement_analysis_cron_schedule',
   [JOB_TYPES.MEMORY_CONSOLIDATION]:  'consolidation_cron_schedule',
+  [JOB_TYPES.MEMORY_DECAY]:          'decay_cron_schedule',
 }
 
 const ACTIVE_KEYS: Record<string, string> = {
@@ -28,6 +30,7 @@ const ACTIVE_KEYS: Record<string, string> = {
   [JOB_TYPES.DRIVE_WEBHOOK_RENEW]:   'drive_webhook_renew_active',
   [JOB_TYPES.IMPROVEMENT_ANALYSIS]:  'improvement_analysis_active',
   [JOB_TYPES.MEMORY_CONSOLIDATION]:  'consolidation_active',
+  [JOB_TYPES.MEMORY_DECAY]:          'memory_decay_active',
 }
 
 export async function scheduleSystemCrons(boss: PgBoss, supabase: SupabaseClient): Promise<void> {
