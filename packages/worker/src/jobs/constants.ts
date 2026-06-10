@@ -8,6 +8,7 @@ export const JOB_TYPES = {
   ROUTINE_RUN: 'routine.run',
   ROUTINE_SCHEDULE_SYNC: 'routine.schedule.sync',
   IMPROVEMENT_ANALYSIS: 'improvement.analysis',
+  MEMORY_CONSOLIDATION: 'memory.consolidation',
 } as const
 
 export type JobType = typeof JOB_TYPES[keyof typeof JOB_TYPES]

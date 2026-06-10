@@ -1000,6 +1000,13 @@ export type Database = {
     }
     Functions: {
       enqueue_job: { Args: { p_data: Json; p_name: string }; Returns: string }
+      find_nearest_semantic_memory: {
+        Args: { p_embedding: string; p_namespace: string }
+        Returns: {
+          memory_id: string
+          similarity: number
+        }[]
+      }
       get_decrypted_credential: {
         Args: { p_connection_id: string }
         Returns: string
