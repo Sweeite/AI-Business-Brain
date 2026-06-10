@@ -196,7 +196,7 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 | 12 | Memory Inspector — Dashboard 2 | ✅ Done | 6 new files; `GET /api/memory`, `POST /api/memory/[id]/invalidate`, `POST /api/memory/[id]/edit`, `PATCH /api/memory/[id]/broaden`; `/memory` page + `memory-inspector-client.tsx` |
 | 13 | Proactive Builder — Dashboard 5 | ✅ Done | commit `55247a1`; `/proactive` page; `packages/app/src/components/proactive/`; `packages/app/src/app/api/routines/`; worker `routine-run.ts` + `routine-schedule-sync.ts` |
 | 14 | Agent Activity + Full Traces — Dashboard 4 | ✅ Done | commit `6639f7c` |
-| 15 | Self-improvement loop + dashboard — Dashboard 6 | ⬜ | |
+| 15 | Self-improvement loop + dashboard — Dashboard 6 | ✅ Done | commit TBD; migrations `20260613000001`, `20260613000002`; `/improvement` dashboard; `/api/memory/[id]/feedback`; `/api/admin/suggestions`, `/api/admin/trends`, `/api/admin/agent-configs/[id]/rollback`; worker `improvement-analysis.ts` |
 | 16 | Memory consolidation cron | ⬜ | Episodic → semantic, watermark guard, near-duplicate check |
 | 17 | Memory decay cron | ⬜ | Utility score formula + invalidation |
 | 18 | Ingestion + Queue Health — Dashboard 3 | ⬜ | |

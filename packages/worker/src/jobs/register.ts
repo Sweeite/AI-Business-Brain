@@ -9,6 +9,7 @@ import { createMemoryProposalDrainHandler } from './handlers/memory-proposal-dra
 import { createDriveWebhookRenewHandler } from './handlers/drive-webhook-renew.js'
 import { createRoutineRunHandler } from './handlers/routine-run.js'
 import { createRoutineScheduleSyncHandler } from './handlers/routine-schedule-sync.js'
+import { createImprovementAnalysisHandler } from './handlers/improvement-analysis.js'
 
 export function registerAllJobs(boss: PgBoss, supabase: SupabaseClient): void {
   boss.work(JOB_TYPES.GMAIL_SYNC, { includeMetadata: true }, createGmailSyncHandler(supabase))
@@ -19,6 +20,7 @@ export function registerAllJobs(boss: PgBoss, supabase: SupabaseClient): void {
   boss.work(JOB_TYPES.DRIVE_WEBHOOK_RENEW, { includeMetadata: true }, createDriveWebhookRenewHandler(supabase))
   boss.work(JOB_TYPES.ROUTINE_RUN, { includeMetadata: true }, createRoutineRunHandler(supabase))
   boss.work(JOB_TYPES.ROUTINE_SCHEDULE_SYNC, { includeMetadata: true }, createRoutineScheduleSyncHandler(boss, supabase))
+  boss.work(JOB_TYPES.IMPROVEMENT_ANALYSIS, { includeMetadata: true }, createImprovementAnalysisHandler(supabase))
 
   console.log('[worker] registered handlers:', Object.values(JOB_TYPES).join(', '))
 }

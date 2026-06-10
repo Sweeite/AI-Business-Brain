@@ -8,6 +8,7 @@ const DEFAULTS: Record<string, string> = {
   [JOB_TYPES.CONNECTOR_SYNC]:        '*/15 * * * *',
   [JOB_TYPES.TOKEN_REFRESH]:         '*/30 * * * *',
   [JOB_TYPES.DRIVE_WEBHOOK_RENEW]:   '0 1 * * *',
+  [JOB_TYPES.IMPROVEMENT_ANALYSIS]:  '0 6 * * 1',
   // memory consolidation and decay are handled by the consolidation/decay cron jobs,
   // seeded in system_config as 'consolidation_cron_schedule' / 'decay_cron_schedule'.
   // They run via the Proactive Builder routines — not yet added to this schedule list.
@@ -18,6 +19,7 @@ const SCHEDULE_KEYS: Record<string, string> = {
   [JOB_TYPES.CONNECTOR_SYNC]:        'connector_sync_schedule',
   [JOB_TYPES.TOKEN_REFRESH]:         'token_refresh_schedule',
   [JOB_TYPES.DRIVE_WEBHOOK_RENEW]:   'drive_webhook_renew_schedule',
+  [JOB_TYPES.IMPROVEMENT_ANALYSIS]:  'improvement_analysis_cron_schedule',
 }
 
 const ACTIVE_KEYS: Record<string, string> = {
@@ -25,6 +27,7 @@ const ACTIVE_KEYS: Record<string, string> = {
   [JOB_TYPES.CONNECTOR_SYNC]:        'connector_sync_active',
   [JOB_TYPES.TOKEN_REFRESH]:         'token_refresh_active',
   [JOB_TYPES.DRIVE_WEBHOOK_RENEW]:   'drive_webhook_renew_active',
+  [JOB_TYPES.IMPROVEMENT_ANALYSIS]:  'improvement_analysis_active',
 }
 
 export async function scheduleSystemCrons(boss: PgBoss, supabase: SupabaseClient): Promise<void> {
