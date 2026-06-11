@@ -62,8 +62,11 @@ export function ImprovementClient() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [expandedEvidence, setExpandedEvidence] = useState<Set<string>>(new Set())
+  const [expandedProposedChange, setExpandedProposedChange] = useState<Set<string>>(new Set())
   const [versionsMap, setVersionsMap] = useState<Record<string, AgentConfigVersion[]>>({})
   const [rollbackTarget, setRollbackTarget] = useState<{ suggestionId: string; configId: string } | null>(null)
+  const [pendingRollbackConfirm, setPendingRollbackConfirm] = useState<{ configId: string; versionId: string } | null>(null)
+  const [actionErrors, setActionErrors] = useState<Record<string, string>>({})
 
   const loadSuggestions = useCallback(async () => {
     setLoading(true)
@@ -97,24 +100,26 @@ export function ImprovementClient() {
 
   async function handleApprove(id: string) {
     setActionLoading(id)
+    setActionErrors((prev) => { const n = { ...prev }; delete n[id]; return n })
     const res = await fetch(`/api/admin/suggestions/${id}/approve`, { method: 'POST' })
     if (res.ok) {
       await loadSuggestions()
     } else {
       const err = await res.json() as { error?: string }
-      alert(err.error ?? 'Failed to approve')
+      setActionErrors((prev) => ({ ...prev, [id]: err.error ?? 'Failed to approve' }))
     }
     setActionLoading(null)
   }
 
   async function handleReject(id: string) {
     setActionLoading(id)
+    setActionErrors((prev) => { const n = { ...prev }; delete n[id]; return n })
     const res = await fetch(`/api/admin/suggestions/${id}/reject`, { method: 'POST' })
     if (res.ok) {
       await loadSuggestions()
     } else {
       const err = await res.json() as { error?: string }
-      alert(err.error ?? 'Failed to reject')
+      setActionErrors((prev) => ({ ...prev, [id]: err.error ?? 'Failed to reject' }))
     }
     setActionLoading(null)
   }
@@ -129,19 +134,21 @@ export function ImprovementClient() {
   }
 
   async function handleRollback(configId: string, versionId: string) {
-    if (!confirm('Restore this version? The current config will be archived.')) return
     setActionLoading(`rollback-${versionId}`)
+    setActionErrors((prev) => { const n = { ...prev }; delete n[`rollback-${versionId}`]; return n })
     const res = await fetch(`/api/admin/agent-configs/${configId}/rollback`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ version_id: versionId }),
     })
     if (res.ok) {
+      setPendingRollbackConfirm(null)
       setRollbackTarget(null)
+      setVersionsMap((prev) => { const n = { ...prev }; delete n[configId]; return n })
       await loadSuggestions()
     } else {
       const err = await res.json() as { error?: string }
-      alert(err.error ?? 'Rollback failed')
+      setActionErrors((prev) => ({ ...prev, [`rollback-${versionId}`]: err.error ?? 'Rollback failed' }))
     }
     setActionLoading(null)
   }
@@ -175,6 +182,13 @@ export function ImprovementClient() {
 
   return (
     <div style={styles.container}>
+      <style>{`
+        .si-tab { background: transparent !important; }
+        .si-tab:hover { background: rgba(0,0,0,0.04) !important; }
+        .si-tab:active { background: rgba(0,0,0,0.08) !important; }
+        .si-tab-active { background: #f3f4f6 !important; color: #111827 !important; font-weight: 600 !important; }
+        .si-tab-active:hover { background: #f3f4f6 !important; }
+      `}</style>
       <h1 style={styles.heading}>Self-Improvement</h1>
       <p style={styles.subheading}>
         Weekly analysis of performance signals. Review and approve suggestions to update system configuration.
@@ -184,8 +198,10 @@ export function ImprovementClient() {
         {(['pending', 'history', 'trends'] as const).map((t) => (
           <button
             key={t}
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => setTab(t)}
-            style={{ ...styles.tabBtn, ...(tab === t ? styles.tabBtnActive : {}) }}
+            className={tab === t ? 'si-tab si-tab-active' : 'si-tab'}
+            style={styles.tabBtn}
           >
             {t === 'pending' ? `Pending (${pendingSuggestions.length})` : t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
@@ -224,9 +240,28 @@ export function ImprovementClient() {
                     </span>
                   )}
                   {s.proposed_change?.type === 'agent_prompt_update' && (
-                    <span style={styles.changeDetail}>Update {s.target_config_name ?? 'agent'} system prompt</span>
+                    <>
+                      <span style={styles.changeDetail}>Update {s.target_config_name ?? 'agent'} system prompt</span>
+                      {s.proposed_change.new_system_prompt && (
+                        <button
+                          style={styles.evidenceToggle}
+                          onClick={() => setExpandedProposedChange((prev) => {
+                            const next = new Set(prev)
+                            next.has(s.id) ? next.delete(s.id) : next.add(s.id)
+                            return next
+                          })}
+                        >
+                          {expandedProposedChange.has(s.id) ? '▾ Hide new prompt' : '▸ Show new prompt'}
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
+                {s.proposed_change?.type === 'agent_prompt_update' && expandedProposedChange.has(s.id) && (
+                  <pre style={styles.evidenceBlock}>
+                    {String(s.proposed_change.new_system_prompt)}
+                  </pre>
+                )}
 
                 {s.evidence && (
                   <div>
@@ -244,6 +279,9 @@ export function ImprovementClient() {
                   </div>
                 )}
 
+                {actionErrors[s.id] && (
+                  <p style={styles.inlineError}>{actionErrors[s.id]}</p>
+                )}
                 <div style={styles.actions}>
                   <button
                     style={{ ...styles.approveBtn, opacity: actionLoading === s.id ? 0.5 : 1 }}
@@ -324,20 +362,48 @@ export function ImprovementClient() {
                             <p style={{ color: '#aaa' }}>No prior versions found.</p>
                           ) : (
                             (versionsMap[s.target_config_id] ?? []).map((v) => (
-                              <div key={v.id} style={styles.versionRow}>
-                                <span style={{ color: '#ccc', fontSize: 13 }}>
-                                  v{v.version} — {v.change_reason ?? 'manual'} — {formatDate(v.created_at)}
-                                </span>
-                                <button
-                                  style={{
-                                    ...styles.rollbackConfirmBtn,
-                                    opacity: actionLoading === `rollback-${v.id}` ? 0.5 : 1,
-                                  }}
-                                  onClick={() => handleRollback(s.target_config_id!, v.id)}
-                                  disabled={actionLoading === `rollback-${v.id}`}
-                                >
-                                  Restore this version
-                                </button>
+                              <div key={v.id}>
+                                <div style={styles.versionRow}>
+                                  <span style={{ color: '#374151', fontSize: 13 }}>
+                                    v{v.version} — {v.change_reason ?? 'manual'} — {formatDate(v.created_at)}
+                                  </span>
+                                  {pendingRollbackConfirm?.versionId !== v.id && (
+                                    <button
+                                      style={styles.rollbackConfirmBtn}
+                                      onClick={() => setPendingRollbackConfirm({ configId: s.target_config_id!, versionId: v.id })}
+                                    >
+                                      Restore this version
+                                    </button>
+                                  )}
+                                </div>
+                                {pendingRollbackConfirm?.versionId === v.id && (
+                                  <div style={styles.rollbackConfirmRow}>
+                                    <span style={{ color: '#b45309', fontSize: 13, fontWeight: 600 }}>
+                                      Restore v{v.version}? The current config will be archived.
+                                    </span>
+                                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                      <button
+                                        style={{
+                                          ...styles.rollbackConfirmBtn,
+                                          opacity: actionLoading === `rollback-${v.id}` ? 0.5 : 1,
+                                        }}
+                                        onClick={() => handleRollback(s.target_config_id!, v.id)}
+                                        disabled={actionLoading === `rollback-${v.id}`}
+                                      >
+                                        {actionLoading === `rollback-${v.id}` ? 'Restoring…' : 'Confirm restore'}
+                                      </button>
+                                      <button
+                                        style={styles.cancelBtn}
+                                        onClick={() => setPendingRollbackConfirm(null)}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                    {actionErrors[`rollback-${v.id}`] && (
+                                      <p style={styles.inlineError}>{actionErrors[`rollback-${v.id}`]}</p>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ))
                           )}
@@ -360,42 +426,42 @@ export function ImprovementClient() {
 
       {!loading && tab === 'trends' && (
         <div>
-          <p style={{ color: '#aaa', marginBottom: 16, fontSize: 14 }}>
+          <p style={{ color: '#6b7280', marginBottom: 16, fontSize: 14 }}>
             Past 8 weeks — answer quality (avg user rating) and miss rate.
           </p>
           {trends.length === 0 ? (
-            <p style={styles.empty}>No data yet. Trends populate as users rate answers and the brain encounters misses.</p>
+            <p style={{ color: '#6b7280', fontSize: 14 }}>No data yet. Trends populate as users rate answers and the brain encounters misses.</p>
           ) : (
             <table style={styles.table}>
               <thead>
                 <tr>
-                  <th style={styles.th}>Week</th>
-                  <th style={styles.th}>Total runs</th>
-                  <th style={styles.th}>Rated runs</th>
-                  <th style={styles.th}>Avg rating{ratingTrend(trends)}</th>
-                  <th style={styles.th}>Misses{missTrend(trends)}</th>
-                  <th style={styles.th}>Resolved misses</th>
+                  <th style={styles.thLight}>Week</th>
+                  <th style={styles.thLight}>Total runs</th>
+                  <th style={styles.thLight}>Rated runs</th>
+                  <th style={styles.thLight}>Avg rating{ratingTrend(trends)}</th>
+                  <th style={styles.thLight}>Misses{missTrend(trends)}</th>
+                  <th style={styles.thLight}>Resolved misses</th>
                 </tr>
               </thead>
               <tbody>
                 {trends.map((w) => (
-                  <tr key={w.week} style={styles.tr}>
-                    <td style={styles.td}>{w.week}</td>
-                    <td style={styles.td}>{w.total_runs}</td>
-                    <td style={styles.td}>{w.rated_runs}</td>
-                    <td style={styles.td}>
+                  <tr key={w.week} style={styles.trLight}>
+                    <td style={styles.tdLight}>{w.week}</td>
+                    <td style={styles.tdLight}>{w.total_runs}</td>
+                    <td style={styles.tdLight}>{w.rated_runs}</td>
+                    <td style={styles.tdLight}>
                       {w.avg_rating !== null ? (
-                        <span style={{ color: w.avg_rating >= 0 ? '#4ade80' : '#f87171' }}>
+                        <span style={{ color: w.avg_rating >= 0 ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
                           {w.avg_rating > 0 ? '+' : ''}{w.avg_rating.toFixed(2)}
                         </span>
                       ) : '—'}
                     </td>
-                    <td style={styles.td}>
-                      <span style={{ color: w.miss_count > 5 ? '#f87171' : '#e5e7eb' }}>
+                    <td style={styles.tdLight}>
+                      <span style={{ color: w.miss_count > 5 ? '#dc2626' : '#111827', fontWeight: w.miss_count > 5 ? 600 : 400 }}>
                         {w.miss_count}
                       </span>
                     </td>
-                    <td style={styles.td}>{w.resolved_miss_count}</td>
+                    <td style={styles.tdLight}>{w.resolved_miss_count}</td>
                   </tr>
                 ))}
               </tbody>
@@ -411,49 +477,46 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     padding: '32px',
     maxWidth: '960px',
-    color: '#e5e7eb',
+    color: '#111827',
   },
   heading: {
     fontSize: 24,
     fontWeight: 700,
     margin: '0 0 8px',
-    color: '#fff',
+    color: '#111827',
   },
   subheading: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: '#6b7280',
     margin: '0 0 28px',
   },
   tabs: {
     display: 'flex',
-    gap: 8,
+    gap: 4,
     marginBottom: 24,
-    borderBottom: '1px solid #374151',
+    borderBottom: '1px solid #e5e7eb',
     paddingBottom: 12,
   },
   tabBtn: {
-    background: 'none',
     border: 'none',
-    color: '#9ca3af',
+    color: '#6b7280',
     fontSize: 14,
     cursor: 'pointer',
     padding: '6px 14px',
     borderRadius: 4,
-  },
-  tabBtnActive: {
-    backgroundColor: '#1f2937',
-    color: '#fff',
+    outline: 'none',
   },
   empty: {
     color: '#6b7280',
     fontSize: 14,
   },
   card: {
-    backgroundColor: '#1a1a2e',
-    border: '1px solid #374151',
+    backgroundColor: '#fff',
+    border: '1px solid #e5e7eb',
     borderRadius: 8,
     padding: 20,
     marginBottom: 16,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
   },
   cardHeader: {
     display: 'flex',
@@ -472,23 +535,23 @@ const styles: Record<string, React.CSSProperties> = {
   },
   configLabel: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: '#6b7280',
     fontFamily: 'monospace',
   },
   date: {
     marginLeft: 'auto',
     fontSize: 12,
-    color: '#6b7280',
+    color: '#9ca3af',
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: 600,
     margin: '0 0 8px',
-    color: '#f9fafb',
+    color: '#111827',
   },
   cardReasoning: {
     fontSize: 14,
-    color: '#d1d5db',
+    color: '#374151',
     lineHeight: 1.6,
     margin: '0 0 12px',
   },
@@ -496,7 +559,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#111827',
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
     borderRadius: 4,
     padding: '8px 12px',
     marginBottom: 12,
@@ -504,14 +568,14 @@ const styles: Record<string, React.CSSProperties> = {
   changeType: {
     fontSize: 12,
     fontWeight: 600,
-    color: '#60a5fa',
+    color: '#2563eb',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.05em',
     flexShrink: 0,
   },
   changeDetail: {
     fontSize: 13,
-    color: '#9ca3af',
+    color: '#374151',
     fontFamily: 'monospace',
   },
   evidenceToggle: {
@@ -522,14 +586,15 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     padding: 0,
     marginBottom: 8,
+    outline: 'none',
   },
   evidenceBlock: {
-    backgroundColor: '#0f172a',
-    border: '1px solid #1e293b',
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
     borderRadius: 4,
     padding: 12,
     fontSize: 12,
-    color: '#94a3b8',
+    color: '#374151',
     overflow: 'auto',
     maxHeight: 200,
     marginBottom: 12,
@@ -550,9 +615,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
   },
   rejectBtn: {
-    backgroundColor: '#1f2937',
-    color: '#e5e7eb',
-    border: '1px solid #374151',
+    backgroundColor: '#fff',
+    color: '#374151',
+    border: '1px solid #d1d5db',
     borderRadius: 4,
     padding: '7px 18px',
     fontSize: 13,
@@ -566,19 +631,19 @@ const styles: Record<string, React.CSSProperties> = {
   th: {
     textAlign: 'left' as const,
     padding: '10px 12px',
-    borderBottom: '1px solid #374151',
-    color: '#9ca3af',
+    borderBottom: '2px solid #e5e7eb',
+    color: '#6b7280',
     fontWeight: 600,
     fontSize: 12,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.05em',
   },
   tr: {
-    borderBottom: '1px solid #1f2937',
+    borderBottom: '1px solid #f3f4f6',
   },
   td: {
     padding: '10px 12px',
-    color: '#d1d5db',
+    color: '#374151',
     verticalAlign: 'top' as const,
   },
   statusBadge: {
@@ -591,24 +656,28 @@ const styles: Record<string, React.CSSProperties> = {
   },
   rollbackBtn: {
     background: 'none',
-    border: '1px solid #374151',
-    color: '#9ca3af',
+    border: '1px solid #d1d5db',
+    color: '#6b7280',
     borderRadius: 4,
     padding: '4px 10px',
     fontSize: 12,
     cursor: 'pointer',
   },
   rollbackPanel: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
     padding: '16px 20px',
-    borderBottom: '1px solid #374151',
+    borderBottom: '1px solid #e5e7eb',
   },
   versionRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '8px 0',
-    borderBottom: '1px solid #1e293b',
+    borderBottom: '1px solid #e5e7eb',
+  },
+  rollbackConfirmRow: {
+    padding: '10px 0 8px',
+    borderBottom: '1px solid #e5e7eb',
   },
   rollbackConfirmBtn: {
     backgroundColor: '#7c3aed',
@@ -625,7 +694,35 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#6b7280',
     fontSize: 13,
     cursor: 'pointer',
-    marginTop: 12,
-    padding: 0,
+    padding: '4px 0',
+    outline: 'none',
+  },
+  inlineError: {
+    color: '#dc2626',
+    fontSize: 13,
+    margin: '6px 0 4px',
+    padding: '6px 10px',
+    backgroundColor: '#fef2f2',
+    borderRadius: 4,
+    border: '1px solid #fecaca',
+  },
+  thLight: {
+    textAlign: 'left' as const,
+    padding: '10px 12px',
+    borderBottom: '2px solid #e5e7eb',
+    color: '#6b7280',
+    fontWeight: 600,
+    fontSize: 12,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
+  },
+  trLight: {
+    borderBottom: '1px solid #f3f4f6',
+  },
+  tdLight: {
+    padding: '10px 12px',
+    color: '#111827',
+    verticalAlign: 'top' as const,
+    fontSize: 14,
   },
 }
