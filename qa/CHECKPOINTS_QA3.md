@@ -516,7 +516,7 @@ Log in as Owner. Go to `/mission-control` → Crons tab.
 | QA3-B4  | CP3         | Single-day date filter returned no results — `date_to` used midnight cutoff                                             | Low      | ✅ Fixed |
 | QA3-B5  | CP8         | `agent_prompt_update` proposed change showed no prompt content (just "Prompt update")                                   | Low      | ✅ Fixed |
 | QA3-B6  | CP11        | Trends tab text used light colours on light background — nearly unreadable                                               | Low      | ✅ Fixed |
-| QA3-B7  | CP3         | Runs with `acting_user_id=null` (legacy/seed data) show "—" with no filter to target them                               | Low      | Open     |
+| QA3-B7  | CP3         | Runs with `acting_user_id=null` (legacy/seed data) show "—" with no filter to target them                               | Low      | ✅ Fixed |
 | QA3-B8  | Static scan | Double fetch on mount — page `useEffect` and debounce `useEffect` both called `fetchRuns(0)` independently              | Low      | ✅ Fixed |
 | QA3-B9  | Static scan | Race condition on filter change — `setPage(0)` triggered page effect immediately with stale filter state                | Medium   | ✅ Fixed |
 | QA3-B10 | Static scan | Silent trace fetch failure — `toggleTrace()` returned silently on non-OK response; trace panel left blank               | Low      | ✅ Fixed |
@@ -540,6 +540,5 @@ Log in as Owner. Go to `/mission-control` → Crons tab.
 
 ### Deferred
 
-- QA3-B7 (null acting_user_id runs) — low priority; only affects legacy/seeded data with no user attached
 - G5 — tracked as GitHub issue #27
 - G7 — tracked as GitHub issue #28; grill session issue #29 must run first

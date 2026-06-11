@@ -283,6 +283,7 @@ export function ActivityClient() {
           style={styles.filterSelect}
         >
           <option value="">All users</option>
+          <option value="__null__">System (no user)</option>
           {userOptions.map((u) => (
             <option key={u.id} value={u.id}>{u.label}</option>
           ))}
