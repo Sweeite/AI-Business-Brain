@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 
 type SuggestionStatus = 'pending' | 'approved' | 'rejected'
 
@@ -321,8 +321,8 @@ export function ImprovementClient() {
               </thead>
               <tbody>
                 {historySuggestions.map((s) => (
-                  <>
-                    <tr key={s.id} style={styles.tr}>
+                  <Fragment key={s.id}>
+                    <tr style={styles.tr}>
                       <td style={styles.td}>{s.title}</td>
                       <td style={styles.td}>
                         <span style={{ ...styles.badge, backgroundColor: CATEGORY_COLORS[s.category] ?? '#555' }}>
@@ -339,7 +339,7 @@ export function ImprovementClient() {
                       </td>
                       <td style={styles.td}>{s.reviewed_at ? formatDate(s.reviewed_at) : '—'}</td>
                       <td style={styles.td}>
-                        {s.status === 'approved' && s.target_config_id && (
+                        {s.status === 'approved' && s.target_config_id && s.proposed_change.type === 'agent_prompt_update' && (
                           <button
                             style={styles.rollbackBtn}
                             onClick={async () => {
@@ -355,7 +355,7 @@ export function ImprovementClient() {
                     {rollbackTarget?.suggestionId === s.id && s.target_config_id && (
                       <tr key={`${s.id}-rollback`}>
                         <td colSpan={5} style={styles.rollbackPanel}>
-                          <strong style={{ display: 'block', marginBottom: 8, color: '#fff' }}>
+                          <strong style={{ display: 'block', marginBottom: 8, color: '#111827' }}>
                             Select version to restore:
                           </strong>
                           {(versionsMap[s.target_config_id] ?? []).length === 0 ? (
@@ -416,7 +416,7 @@ export function ImprovementClient() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>

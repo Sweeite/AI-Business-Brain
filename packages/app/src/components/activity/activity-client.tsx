@@ -125,13 +125,14 @@ export function ActivityClient() {
   // Derived option lists from loaded runs
   const [agentOptions, setAgentOptions] = useState<{ id: string; name: string }[]>([])
   const [userOptions, setUserOptions] = useState<{ id: string; label: string }[]>([])
-  const agentOptionsLoaded = useRef(false)
-
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // ACT-01/ACT-02: single fetch source — filter changes are debounced and reset page;
+  // pagination calls fetchRuns directly (see handlePageChange below).
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
+      setPage(0)
       void fetchRuns(0)
     }, 300)
     return () => {
@@ -139,11 +140,6 @@ export function ActivityClient() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters])
-
-  useEffect(() => {
-    void fetchRuns(page)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page])
 
   async function fetchRuns(targetPage: number) {
     setLoading(true)
@@ -168,23 +164,27 @@ export function ActivityClient() {
       setRuns(data.runs)
       setTotal(data.total)
 
-      if (!agentOptionsLoaded.current && data.runs.length > 0) {
-        agentOptionsLoaded.current = true
-        const seen = new Map<string, string>()
-        data.runs.forEach((r) => {
-          if (r.agent_config_id && r.agent_configs?.name) {
-            seen.set(r.agent_config_id, r.agent_configs.name)
-          }
+      // ACT-04: accumulate options across all pages so agents/users not on the
+      // current page remain selectable in the filter dropdowns.
+      if (data.runs.length > 0) {
+        setAgentOptions((prev) => {
+          const seen = new Map(prev.map((a) => [a.id, a.name]))
+          data.runs.forEach((r) => {
+            if (r.agent_config_id && r.agent_configs?.name) {
+              seen.set(r.agent_config_id, r.agent_configs.name)
+            }
+          })
+          return Array.from(seen.entries()).map(([id, name]) => ({ id, name }))
         })
-        setAgentOptions(Array.from(seen.entries()).map(([id, name]) => ({ id, name })))
-
-        const userSeen = new Map<string, string>()
-        data.runs.forEach((r) => {
-          if (r.acting_user_id && r.users) {
-            userSeen.set(r.acting_user_id, r.users.full_name ?? r.users.email)
-          }
+        setUserOptions((prev) => {
+          const seen = new Map(prev.map((u) => [u.id, u.label]))
+          data.runs.forEach((r) => {
+            if (r.acting_user_id && r.users) {
+              seen.set(r.acting_user_id, r.users.full_name ?? r.users.email)
+            }
+          })
+          return Array.from(seen.entries()).map(([id, label]) => ({ id, label }))
         })
-        setUserOptions(Array.from(userSeen.entries()).map(([id, label]) => ({ id, label })))
       }
     } catch {
       setError('Network error')
@@ -205,30 +205,45 @@ export function ActivityClient() {
   const hasActiveFilters = Object.values(filters).some((v) => v !== '')
 
   function onFilterChange(key: keyof Filters, value: string) {
-    setPage(0)
     setFilters((prev) => ({ ...prev, [key]: value }))
   }
 
   function clearFilters() {
-    setPage(0)
     setFilters(DEFAULT_FILTERS)
   }
+
+  // ACT-01/ACT-02: pagination bypasses the debounced filter effect and fetches immediately
+  function handlePageChange(newPage: number) {
+    setPage(newPage)
+    void fetchRuns(newPage)
+  }
+
+  const [traceError, setTraceError] = useState<string | null>(null)
 
   async function toggleTrace(runId: string) {
     if (expandedRunId === runId) {
       setExpandedRunId(null)
       setTraceData(null)
+      setTraceError(null)
       return
     }
     setExpandedRunId(runId)
     setTraceData(null)
+    setTraceError(null)
     setTraceLoading(true)
     setExpandedSections(new Set())
     try {
       const resp = await fetch(`/api/activity/${runId}`)
-      if (!resp.ok) return
+      // ACT-03: surface trace fetch errors rather than silently leaving panel blank
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({})) as { error?: string }
+        setTraceError(data.error ?? 'Failed to load trace')
+        return
+      }
       const data = await resp.json() as { run: TraceRun }
       setTraceData(data.run)
+    } catch {
+      setTraceError('Network error loading trace')
     } finally {
       setTraceLoading(false)
     }
@@ -375,6 +390,9 @@ export function ActivityClient() {
             {isExpanded && (
               <div style={styles.tracePanel}>
                 {traceLoading && <p style={styles.traceLoading}>Loading trace…</p>}
+                {!traceLoading && traceError && (
+                  <p style={{ color: '#dc2626', fontSize: '13px', margin: 0 }}>{traceError}</p>
+                )}
                 {traceData && traceData.id === run.id && (
                   <TraceView
                     run={traceData}
@@ -391,7 +409,7 @@ export function ActivityClient() {
       {totalPages > 1 && (
         <div style={styles.pagination}>
           <button
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            onClick={() => handlePageChange(Math.max(0, page - 1))}
             disabled={page === 0 || loading}
             style={styles.pageBtn}
           >
@@ -401,7 +419,7 @@ export function ActivityClient() {
             Page {page + 1} of {totalPages}
           </span>
           <button
-            onClick={() => setPage((p) => p + 1)}
+            onClick={() => handlePageChange(page + 1)}
             disabled={page >= totalPages - 1 || loading}
             style={styles.pageBtn}
           >

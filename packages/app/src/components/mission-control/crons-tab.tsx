@@ -11,11 +11,13 @@ interface JobDef {
 }
 
 const SYSTEM_JOBS: JobDef[] = [
-  { jobType: 'memory.proposal.drain', label: 'Memory Proposal Drain', scheduleKey: 'memory_proposal_drain_schedule', activeKey: 'memory_proposal_drain_active' },
-  { jobType: 'connector.sync',        label: 'Connector Sync',         scheduleKey: 'connector_sync_schedule',        activeKey: 'connector_sync_active' },
-  { jobType: 'token.refresh',         label: 'Token Refresh',          scheduleKey: 'token_refresh_schedule',         activeKey: 'token_refresh_active' },
-  { jobType: 'drive.webhook.renew',   label: 'Drive Webhook Renewal',  scheduleKey: 'drive_webhook_renew_schedule',   activeKey: 'drive_webhook_renew_active' },
-  { jobType: 'memory.decay',          label: 'Memory Decay',           scheduleKey: 'decay_cron_schedule',            activeKey: 'memory_decay_active' },
+  { jobType: 'memory.proposal.drain', label: 'Memory Proposal Drain', scheduleKey: 'memory_proposal_drain_schedule',     activeKey: 'memory_proposal_drain_active' },
+  { jobType: 'connector.sync',        label: 'Connector Sync',         scheduleKey: 'connector_sync_schedule',            activeKey: 'connector_sync_active' },
+  { jobType: 'token.refresh',         label: 'Token Refresh',          scheduleKey: 'token_refresh_schedule',             activeKey: 'token_refresh_active' },
+  { jobType: 'drive.webhook.renew',   label: 'Drive Webhook Renewal',  scheduleKey: 'drive_webhook_renew_schedule',       activeKey: 'drive_webhook_renew_active' },
+  { jobType: 'memory.consolidation',  label: 'Memory Consolidation',   scheduleKey: 'consolidation_cron_schedule',        activeKey: 'consolidation_cron_active' },
+  { jobType: 'memory.decay',          label: 'Memory Decay',           scheduleKey: 'decay_cron_schedule',                activeKey: 'decay_cron_active' },
+  { jobType: 'improvement.analysis',  label: 'Improvement Analysis',   scheduleKey: 'improvement_analysis_cron_schedule', activeKey: 'improvement_analysis_active' },
 ]
 
 interface RunHistoryRun {

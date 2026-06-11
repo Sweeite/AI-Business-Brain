@@ -199,16 +199,27 @@ export function createMemoryConsolidationHandler(supabase: SupabaseClient) {
       }
     }
 
-    // 8. Update watermark — only on full success
-    await updateWatermark(supabase)
+    // 8. Update watermark — only on full success.
+    // If we hit BATCH_SIZE exactly, more records may exist: advance only to the last
+    // processed memory's created_at so the next run picks up overflow rather than
+    // skipping it by jumping to now().
+    const hitBatchLimit = episodicMemories.length === BATCH_SIZE
+    const watermarkTs = hitBatchLimit
+      ? episodicMemories[episodicMemories.length - 1].created_at as string
+      : new Date().toISOString()
+    await updateWatermark(supabase, watermarkTs)
+    if (hitBatchLimit) {
+      console.log(`[memory-consolidation] batch limit reached — next run continues from ${watermarkTs}`)
+    }
     console.log('[memory-consolidation] complete — watermark advanced')
   }
 }
 
-async function updateWatermark(supabase: SupabaseClient): Promise<void> {
+async function updateWatermark(supabase: SupabaseClient, timestamp?: string): Promise<void> {
+  const value = timestamp ?? new Date().toISOString()
   const { error } = await supabase
     .from('system_config')
-    .update({ value: new Date().toISOString(), updated_by: SYSTEM_USER_ID })
+    .update({ value, updated_by: SYSTEM_USER_ID })
     .eq('key', 'consolidation_last_run_at')
 
   if (error) {

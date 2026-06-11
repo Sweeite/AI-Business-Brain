@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   if (agentConfigId) query = query.eq('agent_config_id', agentConfigId)
   if (userId) query = query.eq('acting_user_id', userId)
   if (dateFrom) query = query.gte('created_at', dateFrom)
-  if (dateTo) query = query.lte('created_at', dateTo)
+  if (dateTo) query = query.lte('created_at', `${dateTo}T23:59:59.999Z`)
   if (ratingParam !== '') query = query.eq('user_rating', parseInt(ratingParam, 10))
   if (status && status !== 'all') query = query.eq('status', status)
 
