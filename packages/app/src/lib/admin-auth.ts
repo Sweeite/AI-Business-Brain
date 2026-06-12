@@ -40,6 +40,31 @@ export function isErrorResponse(val: AdminContext | NextResponse): val is NextRe
 }
 
 const MANAGER_ROLES = new Set(['Manager', 'Operator', 'Owner', 'Admin'])
+const OPERATOR_ROLES = new Set(['Operator', 'Owner', 'Admin'])
+
+export async function requireOperator(): Promise<AdminContext | NextResponse> {
+  const supabase = await createClient()
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const serviceClient = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!,
+  )
+
+  const { data: publicUser } = await serviceClient
+    .from('users')
+    .select('id, role_id, roles(name)')
+    .eq('id', authUser.id)
+    .maybeSingle()
+
+  const roleName = (publicUser?.roles as { name: string } | null)?.name ?? ''
+  if (!OPERATOR_ROLES.has(roleName)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  return { actorId: authUser.id, serviceClient }
+}
 
 export async function requireManager(): Promise<AdminContext | NextResponse> {
   const supabase = await createClient()
