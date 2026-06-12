@@ -226,7 +226,7 @@ QA files live in the `qa/` folder:
 
 When the user says "fix QA tasks" or references a QA ID (e.g. QA1-B5, QA2-B1), read `qa/FIX_BACKLOG.md` for the full description before touching any code.
 
-**QA1 fixes applied 2026-06-09** — all bugs and access issues resolved. Deferred: U1 (issue #23), U2 (issue #24), planning session (issue #25). G1 (role_id on deactivation) documented as intentional.
+**QA1 fixes applied 2026-06-09** — all bugs and access issues resolved. Deferred items now complete: U1 (issue #23), U2 (issue #24), G3 (issue #26) all implemented in commit b63bb86. Planning session (issue #25) resolved. G1 (role_id on deactivation) documented as intentional.
 
 **QA2 fixes applied 2026-06-09** — 2 new bugs found and fixed: QA2-B1 (`actor_type: 'human'` → `'user'` in all three memory mutation audit log inserts), QA2-B2 (`utility_score: 0` → `null` in edit route).
 
