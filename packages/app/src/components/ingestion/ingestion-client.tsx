@@ -32,6 +32,16 @@ interface Stats {
   backlogTrend: BacklogEntry[]
 }
 
+interface Proposal {
+  id: string
+  claim: string
+  suggested_type: string
+  confidence: number
+  status: string
+  created_at: string
+  submittedBy: string
+}
+
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
   const d = new Date(iso)
@@ -54,8 +64,14 @@ export function IngestionClient() {
   const [error, setError] = useState<string | null>(null)
   const [connectorFilter, setConnectorFilter] = useState<'All' | 'Gmail' | 'Drive'>('All')
 
+  const [proposals, setProposals] = useState<Proposal[]>([])
+  const [proposalsLoading, setProposalsLoading] = useState(false)
+  const [reviewingId, setReviewingId] = useState<string | null>(null)
+  const [reviewError, setReviewError] = useState<string | null>(null)
+
   useEffect(() => {
     void fetchStats()
+    void fetchProposals()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period])
 
@@ -75,6 +91,44 @@ export function IngestionClient() {
       setError('Network error')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function fetchProposals() {
+    setProposalsLoading(true)
+    try {
+      const resp = await fetch('/api/memory/proposals')
+      if (!resp.ok) return
+      const data = await resp.json() as { proposals: Proposal[] }
+      setProposals(data.proposals)
+    } catch {
+      // non-critical — stats still render
+    } finally {
+      setProposalsLoading(false)
+    }
+  }
+
+  async function reviewProposal(id: string, action: 'approve' | 'reject') {
+    setReviewingId(id)
+    setReviewError(null)
+    try {
+      const resp = await fetch(`/api/memory/proposals/${id}/review`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      if (!resp.ok) {
+        const data = await resp.json() as { error?: string }
+        setReviewError(data.error ?? 'Review action failed')
+        return
+      }
+      // Remove from local list immediately; refetch stats so depth card updates
+      setProposals((prev) => prev.filter((p) => p.id !== id))
+      void fetchStats()
+    } catch {
+      setReviewError('Network error')
+    } finally {
+      setReviewingId(null)
     }
   }
 
@@ -306,6 +360,64 @@ export function IngestionClient() {
           </div>
         </>
       )}
+
+      {/* Review queue — always shown, independent of stats */}
+      <div style={s.section}>
+        <div style={s.reviewHeader}>
+          <div>
+            <h2 style={s.sectionHeading}>Review Queue</h2>
+            <p style={s.sectionSubheading}>Memory proposals awaiting Operator review before commit</p>
+          </div>
+          <button
+            onClick={() => { void fetchProposals() }}
+            disabled={proposalsLoading}
+            style={s.refreshBtn}
+          >
+            {proposalsLoading ? 'Loading…' : 'Refresh'}
+          </button>
+        </div>
+
+        {reviewError && <div style={s.errorBox}>{reviewError}</div>}
+
+        {!proposalsLoading && proposals.length === 0 && (
+          <p style={s.emptyText}>Queue is empty — nothing pending review.</p>
+        )}
+
+        {proposals.map((p) => {
+          const isBusy = reviewingId === p.id
+          return (
+            <div key={p.id} style={s.proposalCard}>
+              <div style={s.proposalTop}>
+                <div style={s.proposalMeta}>
+                  <span style={s.typeBadge}>{p.suggested_type}</span>
+                  <span style={s.confBadge}>
+                    {Math.round(p.confidence * 100)}% confidence
+                  </span>
+                  <span style={s.proposalBy}>by {p.submittedBy}</span>
+                  <span style={s.proposalAge}>{formatDate(p.created_at)}</span>
+                </div>
+                <div style={s.proposalActions}>
+                  <button
+                    onClick={() => { void reviewProposal(p.id, 'approve') }}
+                    disabled={isBusy}
+                    style={{ ...s.actionBtn, ...s.approveBtn }}
+                  >
+                    {isBusy ? '…' : 'Approve'}
+                  </button>
+                  <button
+                    onClick={() => { void reviewProposal(p.id, 'reject') }}
+                    disabled={isBusy}
+                    style={{ ...s.actionBtn, ...s.rejectBtn }}
+                  >
+                    {isBusy ? '…' : 'Reject'}
+                  </button>
+                </div>
+              </div>
+              <p style={s.proposalClaim}>{p.claim}</p>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -475,4 +587,85 @@ const s: Record<string, React.CSSProperties> = {
     minWidth: '2px',
   },
   confCount: { fontSize: '13px', color: '#6b7280', textAlign: 'right' },
+  reviewHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '16px',
+    gap: '12px',
+  },
+  refreshBtn: {
+    padding: '5px 12px',
+    fontSize: '12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '4px',
+    backgroundColor: '#fff',
+    cursor: 'pointer',
+    color: '#374151',
+    flexShrink: 0,
+  },
+  proposalCard: {
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
+    padding: '14px 16px',
+    marginBottom: '10px',
+    backgroundColor: '#fafafa',
+  },
+  proposalTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '12px',
+    marginBottom: '10px',
+  },
+  proposalMeta: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  typeBadge: {
+    padding: '2px 8px',
+    backgroundColor: '#f3f4f6',
+    color: '#374151',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: 600,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.04em',
+  },
+  confBadge: {
+    padding: '2px 8px',
+    backgroundColor: '#e0e7ff',
+    color: '#3730a3',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: 500,
+  },
+  proposalBy: { fontSize: '12px', color: '#6b7280' },
+  proposalAge: { fontSize: '12px', color: '#9ca3af' },
+  proposalActions: { display: 'flex', gap: '6px', flexShrink: 0 },
+  actionBtn: {
+    padding: '5px 14px',
+    fontSize: '12px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontWeight: 600,
+    border: 'none',
+  },
+  approveBtn: {
+    backgroundColor: '#16a34a',
+    color: '#fff',
+  },
+  rejectBtn: {
+    backgroundColor: '#fff',
+    color: '#b91c1c',
+    border: '1px solid #fca5a5',
+  },
+  proposalClaim: {
+    margin: 0,
+    fontSize: '14px',
+    color: '#111',
+    lineHeight: '1.5',
+  },
 }
