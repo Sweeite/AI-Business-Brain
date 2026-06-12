@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ConfirmModal } from '@/components/confirm-modal'
+import { PERMISSION_NODES } from '@brain/core'
 import type { RoleRow } from './mission-control-client'
 
 const CLEARANCE_OPTIONS = ['public', 'internal', 'management', 'leadership']
@@ -192,25 +193,45 @@ export function RolesTab({ initialRoles }: Props) {
               {edit.permissions.length === 0 && (
                 <p style={{ fontSize: '13px', color: '#888' }}>No permission nodes. Add one to grant fine-grained access.</p>
               )}
-              {edit.permissions.map((entry, i) => (
-                <div key={i} style={styles.permRow}>
-                  <input
-                    value={entry.key}
-                    onChange={(e) => updatePermKey(i, e.target.value)}
-                    placeholder="permission.node"
-                    style={{ ...styles.input, flex: 1 }}
-                  />
-                  <select
-                    value={entry.value ? 'true' : 'false'}
-                    onChange={(e) => updatePermVal(i, e.target.value === 'true')}
-                    style={{ ...styles.select, width: '90px' }}
-                  >
-                    <option value="true">Granted</option>
-                    <option value="false">Denied</option>
-                  </select>
-                  <button onClick={() => removePermEntry(i)} style={styles.btnDangerSmall}>✕</button>
-                </div>
-              ))}
+              {edit.permissions.map((entry, i) => {
+                const selectedNode = PERMISSION_NODES.find((n) => n.node === entry.key)
+                return (
+                  <div key={i} style={{ marginBottom: '8px' }}>
+                    <div style={styles.permRow}>
+                      <select
+                        value={entry.key}
+                        onChange={(e) => updatePermKey(i, e.target.value)}
+                        style={{ ...styles.select, flex: 1, marginTop: 0 }}
+                      >
+                        <option value="" disabled>Select permission…</option>
+                        {PERMISSION_NODES.map((n) => (
+                          <option
+                            key={n.node}
+                            value={n.node}
+                            disabled={edit.permissions.some((e, idx) => idx !== i && e.key === n.node)}
+                          >
+                            {n.label}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={entry.value ? 'true' : 'false'}
+                        onChange={(e) => updatePermVal(i, e.target.value === 'true')}
+                        style={{ ...styles.select, width: '90px', marginTop: 0 }}
+                      >
+                        <option value="true">Granted</option>
+                        <option value="false">Denied</option>
+                      </select>
+                      <button onClick={() => removePermEntry(i)} style={styles.btnDangerSmall}>✕</button>
+                    </div>
+                    {selectedNode && (
+                      <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0 0', paddingLeft: '2px' }}>
+                        {selectedNode.description}
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
             {error && <p style={styles.errText}>{error}</p>}

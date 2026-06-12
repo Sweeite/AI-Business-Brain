@@ -20,7 +20,8 @@ interface Memory {
 
 interface Filters {
   type: string
-  namespace: string
+  entity_type: string
+  entity_name: string
   sensitivity_level: string
   status: string
   source: string
@@ -77,7 +78,8 @@ export function MemoryInspectorClient({ isAdmin }: Props) {
   const [invalidateTarget, setInvalidateTarget] = useState<Memory | null>(null)
   const [filters, setFilters] = useState<Filters>({
     type: '',
-    namespace: '',
+    entity_type: '',
+    entity_name: '',
     sensitivity_level: '',
     status: 'active',
     source: '',
@@ -111,7 +113,8 @@ export function MemoryInspectorClient({ isAdmin }: Props) {
       const params = new URLSearchParams()
       params.set('page', String(targetPage))
       if (filters.type) params.set('type', filters.type)
-      if (filters.namespace) params.set('namespace', filters.namespace)
+      if (filters.entity_type) params.set('entity_type', filters.entity_type)
+      if (filters.entity_name) params.set('entity_name', filters.entity_name)
       if (filters.sensitivity_level) params.set('sensitivity_level', filters.sensitivity_level)
       if (filters.status) params.set('status', filters.status)
       if (filters.source) params.set('source', filters.source)
@@ -137,7 +140,8 @@ export function MemoryInspectorClient({ isAdmin }: Props) {
 
   const DEFAULT_FILTERS: Filters = {
     type: '',
-    namespace: '',
+    entity_type: '',
+    entity_name: '',
     sensitivity_level: '',
     status: 'active',
     source: '',
@@ -148,7 +152,7 @@ export function MemoryInspectorClient({ isAdmin }: Props) {
 
   const hasActiveFilters =
     filters.type !== '' ||
-    filters.namespace !== '' ||
+    filters.entity_type !== '' ||
     filters.sensitivity_level !== '' ||
     filters.status !== 'active' ||
     filters.source !== '' ||
@@ -291,13 +295,28 @@ export function MemoryInspectorClient({ isAdmin }: Props) {
           <option value="gmail">Gmail</option>
           <option value="google_drive">Google Drive</option>
         </select>
-        <input
-          type="text"
-          placeholder="Namespace (e.g. org)"
-          value={filters.namespace}
-          onChange={(e) => onFilterChange('namespace', e.target.value)}
-          style={{ ...styles.filterInput, width: '160px' }}
-        />
+        <select
+          value={filters.entity_type}
+          onChange={(e) => {
+            setPage(0)
+            setFilters((prev) => ({ ...prev, entity_type: e.target.value, entity_name: '' }))
+          }}
+          style={styles.filterSelect}
+        >
+          <option value="">All entities</option>
+          <option value="org">Org-wide</option>
+          <option value="client">Client</option>
+          <option value="project">Project</option>
+        </select>
+        {(filters.entity_type === 'client' || filters.entity_type === 'project') && (
+          <input
+            type="text"
+            placeholder={filters.entity_type === 'client' ? 'Client name…' : 'Project name…'}
+            value={filters.entity_name}
+            onChange={(e) => onFilterChange('entity_name', e.target.value)}
+            style={{ ...styles.filterInput, width: '140px', minWidth: '0' }}
+          />
+        )}
         <input
           type="date"
           value={filters.date_from}

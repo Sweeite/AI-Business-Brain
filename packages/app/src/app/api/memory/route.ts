@@ -11,6 +11,8 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const type = searchParams.get('type') ?? ''
   const namespace = searchParams.get('namespace') ?? ''
+  const entityType = searchParams.get('entity_type') ?? ''
+  const entityName = searchParams.get('entity_name') ?? ''
   const sensitivityLevel = searchParams.get('sensitivity_level') ?? ''
   const status = searchParams.get('status') ?? 'active'
   const source = searchParams.get('source') ?? ''
@@ -29,7 +31,16 @@ export async function GET(req: NextRequest) {
     )
 
   if (type) query = query.eq('type', type)
-  if (namespace) query = query.eq('namespace', namespace)
+  // Entity filter (structured) takes precedence over raw namespace param
+  if (entityType === 'org') {
+    query = query.eq('namespace', 'org')
+  } else if (entityType === 'client' && entityName.trim()) {
+    query = query.eq('namespace', `client:${entityName.trim()}`)
+  } else if (entityType === 'project' && entityName.trim()) {
+    query = query.eq('namespace', `project:${entityName.trim()}`)
+  } else if (namespace) {
+    query = query.eq('namespace', namespace)
+  }
   if (sensitivityLevel) query = query.eq('sensitivity_level', sensitivityLevel)
   if (status === 'active') query = query.eq('status', 'active')
   else if (status === 'invalidated') query = query.eq('status', 'invalidated')

@@ -41,6 +41,12 @@ export function RoutineWizard({ agentConfigs, isAdmin, onClose, onCreated }: Pro
   const [triggerType, setTriggerType] = useState<TriggerType>('cron')
   const [cronPreset, setCronPreset] = useState('')
   const [cronCustom, setCronCustom] = useState('')
+  // Visual cron builder state (used when cronPreset === '' and builderFreq !== 'advanced')
+  const [builderFreq, setBuilderFreq] = useState<'minutes' | 'hours' | 'daily' | 'weekly' | 'monthly' | 'advanced'>('daily')
+  const [builderN, setBuilderN] = useState('15')
+  const [builderTime, setBuilderTime] = useState('09:00')
+  const [builderDay, setBuilderDay] = useState('1')
+  const [builderDate, setBuilderDate] = useState('1')
   const [webhookConnector, setWebhookConnector] = useState('gmail')
   const [webhookEvent, setWebhookEvent] = useState('email.received')
   const [webhookFilterFrom, setWebhookFilterFrom] = useState('')
@@ -65,9 +71,23 @@ export function RoutineWizard({ agentConfigs, isAdmin, onClose, onCreated }: Pro
   const [toolName, setToolName] = useState('')
   const [toolParams, setToolParams] = useState('{}')
 
+  function builderToCron(): string {
+    const parts = builderTime.split(':')
+    const h = String(parseInt(parts[0] ?? '9', 10))
+    const m = String(parseInt(parts[1] ?? '0', 10))
+    switch (builderFreq) {
+      case 'minutes': return `*/${builderN} * * * *`
+      case 'hours': return `0 */${builderN} * * *`
+      case 'daily': return `${m} ${h} * * *`
+      case 'weekly': return `${m} ${h} * * ${builderDay}`
+      case 'monthly': return `${m} ${h} ${builderDate} * *`
+      case 'advanced': return cronCustom.trim()
+    }
+  }
+
   function effectiveCron(): string {
     if (cronPreset) return cronPreset
-    return cronCustom.trim()
+    return builderToCron()
   }
 
   function step1Valid(): boolean {
@@ -198,7 +218,7 @@ export function RoutineWizard({ agentConfigs, isAdmin, onClose, onCreated }: Pro
                         </button>
                       ))}
                       <button
-                        style={{ ...styles.presetBtn, ...(cronPreset === '' && cronCustom ? styles.presetBtnActive : {}) }}
+                        style={{ ...styles.presetBtn, ...(cronPreset === '' ? styles.presetBtnActive : {}) }}
                         onClick={() => setCronPreset('')}
                       >
                         Custom
@@ -207,14 +227,117 @@ export function RoutineWizard({ agentConfigs, isAdmin, onClose, onCreated }: Pro
                   </div>
                   {cronPreset === '' && (
                     <div style={styles.fieldGroup}>
-                      <label style={styles.label}>Custom cron expression</label>
-                      <input
-                        style={styles.input}
-                        value={cronCustom}
-                        onChange={(e) => setCronCustom(e.target.value)}
-                        placeholder="0 9 * * 1-5"
-                      />
-                      <div style={styles.hint}>Standard 5-field cron (min hr dom mon dow)</div>
+                      <label style={styles.label}>Custom schedule</label>
+                      <select
+                        style={styles.select}
+                        value={builderFreq}
+                        onChange={(e) => setBuilderFreq(e.target.value as typeof builderFreq)}
+                      >
+                        <option value="minutes">Every N minutes</option>
+                        <option value="hours">Every N hours</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="advanced">Advanced (cron syntax)</option>
+                      </select>
+
+                      {builderFreq === 'minutes' && (
+                        <div style={styles.builderRow}>
+                          <span style={styles.builderLabel}>Every</span>
+                          <select style={styles.builderSelect} value={builderN} onChange={(e) => setBuilderN(e.target.value)}>
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="15">15</option>
+                            <option value="30">30</option>
+                          </select>
+                          <span style={styles.builderLabel}>minutes</span>
+                        </div>
+                      )}
+
+                      {builderFreq === 'hours' && (
+                        <div style={styles.builderRow}>
+                          <span style={styles.builderLabel}>Every</span>
+                          <select style={styles.builderSelect} value={builderN} onChange={(e) => setBuilderN(e.target.value)}>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="4">4</option>
+                            <option value="6">6</option>
+                            <option value="12">12</option>
+                          </select>
+                          <span style={styles.builderLabel}>{builderN === '1' ? 'hour' : 'hours'}</span>
+                        </div>
+                      )}
+
+                      {builderFreq === 'daily' && (
+                        <div style={styles.builderRow}>
+                          <span style={styles.builderLabel}>At</span>
+                          <input
+                            type="time"
+                            style={styles.builderSelect}
+                            value={builderTime}
+                            onChange={(e) => setBuilderTime(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      {builderFreq === 'weekly' && (
+                        <div style={styles.builderRow}>
+                          <span style={styles.builderLabel}>On</span>
+                          <select style={styles.builderSelect} value={builderDay} onChange={(e) => setBuilderDay(e.target.value)}>
+                            <option value="0">Sunday</option>
+                            <option value="1">Monday</option>
+                            <option value="2">Tuesday</option>
+                            <option value="3">Wednesday</option>
+                            <option value="4">Thursday</option>
+                            <option value="5">Friday</option>
+                            <option value="6">Saturday</option>
+                          </select>
+                          <span style={styles.builderLabel}>at</span>
+                          <input
+                            type="time"
+                            style={styles.builderSelect}
+                            value={builderTime}
+                            onChange={(e) => setBuilderTime(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      {builderFreq === 'monthly' && (
+                        <div style={styles.builderRow}>
+                          <span style={styles.builderLabel}>On day</span>
+                          <select style={styles.builderSelect} value={builderDate} onChange={(e) => setBuilderDate(e.target.value)}>
+                            {Array.from({ length: 28 }, (_, i) => String(i + 1)).map((d) => (
+                              <option key={d} value={d}>{d}</option>
+                            ))}
+                          </select>
+                          <span style={styles.builderLabel}>at</span>
+                          <input
+                            type="time"
+                            style={styles.builderSelect}
+                            value={builderTime}
+                            onChange={(e) => setBuilderTime(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      {builderFreq === 'advanced' && (
+                        <div style={{ marginTop: '8px' }}>
+                          <input
+                            style={styles.input}
+                            value={cronCustom}
+                            onChange={(e) => setCronCustom(e.target.value)}
+                            placeholder="0 9 * * 1-5"
+                          />
+                          <div style={styles.hint}>Standard 5-field cron (min hr dom mon dow)</div>
+                        </div>
+                      )}
+
+                      {builderFreq !== 'advanced' && (
+                        <div style={styles.cronPreview}>
+                          <span style={styles.hint}>Generated:</span>
+                          <code style={styles.cronCode}>{builderToCron()}</code>
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
@@ -678,5 +801,38 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14,
     cursor: 'pointer',
     marginBottom: 4,
+  },
+  builderRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    flexWrap: 'wrap' as const,
+  },
+  builderLabel: {
+    fontSize: 13,
+    color: '#374151',
+  },
+  builderSelect: {
+    padding: '6px 10px',
+    border: '1px solid #d1d5db',
+    borderRadius: 6,
+    fontSize: 13,
+    background: '#fff',
+  },
+  cronPreview: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    padding: '7px 10px',
+    background: '#f9fafb',
+    border: '1px solid #e5e7eb',
+    borderRadius: 4,
+  },
+  cronCode: {
+    fontFamily: 'monospace',
+    fontSize: 13,
+    color: '#1e3a5f',
   },
 }
