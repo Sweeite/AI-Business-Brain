@@ -200,7 +200,7 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 | 16 | Memory consolidation cron | ✅ Done | commit `439d4c3`; migration `20260614000001`; `packages/worker/src/jobs/handlers/memory-consolidation.ts` |
 | 17 | Memory decay cron | ✅ Done | commit `fef37e6`; `packages/worker/src/jobs/handlers/memory-decay.ts`; crons-tab wired |
 | 18 | Ingestion + Queue Health — Dashboard 3 | ✅ Done | commit `fc9b0e0`; `/ingestion` page + `IngestionClient`; `GET /api/ingestion/stats`; `requireOperator()` in admin-auth |
-| 19 | Cost Monitor — Dashboard 7 | ⬜ | |
+| 19 | Cost Monitor — Dashboard 7 | ✅ Done | commit `00f0d6d`; migration `20260615000001`; `/cost` page + `CostClient`; `GET /api/admin/cost/stats`; `PATCH /api/admin/cost/budget`; `cost_budget_usd` + `cost_alert_threshold_pct` in system_config |
 | 20 | Quality Monitor — Dashboard 8 | ⬜ | |
 | 21 | System Health + Audit Log + Connector Management — Dashboards 9, 10, 12 | ⬜ | |
 
