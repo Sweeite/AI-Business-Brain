@@ -199,7 +199,7 @@ Issues map to PRD §15. Complete them in order — each depends on the one befor
 | 15 | Self-improvement loop + dashboard — Dashboard 6 | ✅ Done | commit `2bf5d8d`; migrations `20260613000001`, `20260613000002`; `/improvement` dashboard; `/api/memory/[id]/feedback`; `/api/admin/suggestions`, `/api/admin/trends`, `/api/admin/agent-configs/[id]/rollback`; worker `improvement-analysis.ts` |
 | 16 | Memory consolidation cron | ✅ Done | commit `439d4c3`; migration `20260614000001`; `packages/worker/src/jobs/handlers/memory-consolidation.ts` |
 | 17 | Memory decay cron | ✅ Done | commit `fef37e6`; `packages/worker/src/jobs/handlers/memory-decay.ts`; crons-tab wired |
-| 18 | Ingestion + Queue Health — Dashboard 3 | ⬜ | |
+| 18 | Ingestion + Queue Health — Dashboard 3 | ✅ Done | commit `fc9b0e0`; `/ingestion` page + `IngestionClient`; `GET /api/ingestion/stats`; `requireOperator()` in admin-auth |
 | 19 | Cost Monitor — Dashboard 7 | ⬜ | |
 | 20 | Quality Monitor — Dashboard 8 | ⬜ | |
 | 21 | System Health + Audit Log + Connector Management — Dashboards 9, 10, 12 | ⬜ | |
