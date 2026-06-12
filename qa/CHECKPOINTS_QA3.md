@@ -456,7 +456,7 @@ Re-trigger decay, then verify the old chunk is gone.
 
 Log in as Owner. Go to `/mission-control` → Crons tab.
 
-- `memory.consolidation` job visible in crons list with schedule (default: `0 2 * * `*). - **Fixed** (was missing from SYSTEM_JOBS array, now added)
+- `memory.consolidation` job visible in crons list with schedule (default: `0 2 * `* *). - **Fixed** (was missing from SYSTEM_JOBS array, now added)
 - `memory.decay` job visible with schedule (default: `0 3 * * 0`) - Done
 - `improvement.analysis` job visible with schedule (default: `0 6 * * 1`) - **Fixed** (was missing from SYSTEM_JOBS array, now added)
 - Toggle memory.decay off → `system_config` key `decay_cron_active` = false (**key corrected** — was `memory_decay_active`, DB uses `decay_cron_active`)
@@ -508,37 +508,38 @@ Log in as Owner. Go to `/mission-control` → Crons tab.
 ### Bugs found
 
 
-| ID      | Checkpoint  | Description                                                                                                              | Severity | Status   |
-| ------- | ----------- | ------------------------------------------------------------------------------------------------------------------------ | -------- | -------- |
-| QA3-B1  | CP10        | Rollback used browser `confirm()` instead of in-app modal                                                                | Medium   | ✅ Fixed |
-| QA3-B2  | CP8         | Approve/reject errors used `alert()` instead of in-page error display                                                   | Medium   | ✅ Fixed |
-| QA3-B3  | CP14        | `memory.consolidation` and `improvement.analysis` missing from Crons tab; active key mismatch between worker and DB     | High     | ✅ Fixed |
-| QA3-B4  | CP3         | Single-day date filter returned no results — `date_to` used midnight cutoff                                             | Low      | ✅ Fixed |
-| QA3-B5  | CP8         | `agent_prompt_update` proposed change showed no prompt content (just "Prompt update")                                   | Low      | ✅ Fixed |
-| QA3-B6  | CP11        | Trends tab text used light colours on light background — nearly unreadable                                               | Low      | ✅ Fixed |
-| QA3-B7  | CP3         | Runs with `acting_user_id=null` (legacy/seed data) show "—" with no filter to target them                               | Low      | ✅ Fixed |
-| QA3-B8  | Static scan | Double fetch on mount — page `useEffect` and debounce `useEffect` both called `fetchRuns(0)` independently              | Low      | ✅ Fixed |
-| QA3-B9  | Static scan | Race condition on filter change — `setPage(0)` triggered page effect immediately with stale filter state                | Medium   | ✅ Fixed |
-| QA3-B10 | Static scan | Silent trace fetch failure — `toggleTrace()` returned silently on non-OK response; trace panel left blank               | Low      | ✅ Fixed |
-| QA3-B11 | Static scan | Filter dropdowns built from first page only — agents/users outside first 20 runs were unreachable in dropdowns          | Medium   | ✅ Fixed |
-| QA3-B12 | Static scan | React key on bare `<>` fragment in history table `.map()` — should be `<Fragment key={s.id}>`                           | Low      | ✅ Fixed |
-| QA3-B13 | Static scan | White text (`color: '#fff'`) on near-white background in rollback panel — "Select version to restore:" was unreadable   | Medium   | ✅ Fixed |
-| QA3-B14 | Static scan | Rollback button shown for any approved suggestion with `target_config_id`, not gated to `agent_prompt_update` type      | Medium   | ✅ Fixed |
-| QA3-B15 | Static scan | Watermark advanced to `now()` even when batch hit `BATCH_SIZE=50` — overflow episodic memories silently dropped         | High     | ✅ Fixed |
-| QA3-B16 | Static scan | No key allowlist on `PATCH /api/admin/system-config/[key]` — Owner could write arbitrary config keys                   | Low      | ✅ Fixed |
+| ID      | Checkpoint  | Description                                                                                                           | Severity | Status  |
+| ------- | ----------- | --------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
+| QA3-B1  | CP10        | Rollback used browser `confirm()` instead of in-app modal                                                             | Medium   | ✅ Fixed |
+| QA3-B2  | CP8         | Approve/reject errors used `alert()` instead of in-page error display                                                 | Medium   | ✅ Fixed |
+| QA3-B3  | CP14        | `memory.consolidation` and `improvement.analysis` missing from Crons tab; active key mismatch between worker and DB   | High     | ✅ Fixed |
+| QA3-B4  | CP3         | Single-day date filter returned no results — `date_to` used midnight cutoff                                           | Low      | ✅ Fixed |
+| QA3-B5  | CP8         | `agent_prompt_update` proposed change showed no prompt content (just "Prompt update")                                 | Low      | ✅ Fixed |
+| QA3-B6  | CP11        | Trends tab text used light colours on light background — nearly unreadable                                            | Low      | ✅ Fixed |
+| QA3-B7  | CP3         | Runs with `acting_user_id=null` (legacy/seed data) show "—" with no filter to target them                             | Low      | ✅ Fixed |
+| QA3-B8  | Static scan | Double fetch on mount — page `useEffect` and debounce `useEffect` both called `fetchRuns(0)` independently            | Low      | ✅ Fixed |
+| QA3-B9  | Static scan | Race condition on filter change — `setPage(0)` triggered page effect immediately with stale filter state              | Medium   | ✅ Fixed |
+| QA3-B10 | Static scan | Silent trace fetch failure — `toggleTrace()` returned silently on non-OK response; trace panel left blank             | Low      | ✅ Fixed |
+| QA3-B11 | Static scan | Filter dropdowns built from first page only — agents/users outside first 20 runs were unreachable in dropdowns        | Medium   | ✅ Fixed |
+| QA3-B12 | Static scan | React key on bare `<>` fragment in history table `.map()` — should be `<Fragment key={s.id}>`                         | Low      | ✅ Fixed |
+| QA3-B13 | Static scan | White text (`color: '#fff'`) on near-white background in rollback panel — "Select version to restore:" was unreadable | Medium   | ✅ Fixed |
+| QA3-B14 | Static scan | Rollback button shown for any approved suggestion with `target_config_id`, not gated to `agent_prompt_update` type    | Medium   | ✅ Fixed |
+| QA3-B15 | Static scan | Watermark advanced to `now()` even when batch hit `BATCH_SIZE=50` — overflow episodic memories silently dropped       | High     | ✅ Fixed |
+| QA3-B16 | Static scan | No key allowlist on `PATCH /api/admin/system-config/[key]` — Owner could write arbitrary config keys                  | Low      | ✅ Fixed |
 
 
 ### Gaps flagged
 
 
-| ID  | Description                                                                                                              |
-| --- | ------------------------------------------------------------------------------------------------------------------------ |
+| ID  | Description                                                                                                                 |
+| --- | --------------------------------------------------------------------------------------------------------------------------- |
 | G5  | No UI for memory-level feedback (helpful/wrong/stale/stop_storing) — API exists, no button in Memory Inspector — GitHub #27 |
-| G6  | Cron schedule changes require worker restart — note is present on the Crons tab ✅ already handled                      |
-| G7  | Decay threshold changes in self-improvement do not flag for admin approval before taking effect — GitHub #28             |
+| G6  | Cron schedule changes require worker restart — note is present on the Crons tab ✅ already handled                           |
+| G7  | Decay threshold changes in self-improvement do not flag for admin approval before taking effect — GitHub #28                |
 
 
 ### Deferred
 
 - G5 — tracked as GitHub issue #27
 - G7 — tracked as GitHub issue #28; grill session issue #29 must run first
+
