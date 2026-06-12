@@ -199,9 +199,19 @@ export function ConnectorsClient() {
       {/* All Connectors tab */}
       {tab === 'all' && (
         <div style={s.section}>
-          <p style={s.sectionSub}>All company-wide and per-user connector connections.</p>
+          <div style={s.addRow}>
+            <p style={{ ...s.sectionSub, margin: 0, flex: 1 }}>All company-wide and per-user connector connections.</p>
+            <div style={s.addBtns}>
+              <a href="/api/connectors/gmail/connect" style={s.addBtn}>+ Connect Gmail</a>
+              <a href="/api/connectors/drive/connect" style={s.addBtn}>+ Connect Drive</a>
+            </div>
+          </div>
+          <p style={s.addNote}>
+            Each connector is per-user — these buttons connect <strong>your</strong> Google account.
+            Other users connect via their onboarding flow or account settings.
+          </p>
           {connections.length === 0 && !loading ? (
-            <p style={s.emptyText}>No connectors configured.</p>
+            <p style={s.emptyText}>No connections yet. Use the buttons above to add your first connector.</p>
           ) : (
             <div style={s.tableWrap}>
               <table style={s.table}>
@@ -301,8 +311,13 @@ export function ConnectorsClient() {
           <p style={s.sectionSubStandalone}>
             Configure do-not-ingest rules per connector. Emails and domains listed here will be excluded from ingestion at Gate 1.
           </p>
-          {connections.length === 0 && !loading && (
-            <div style={s.section}><p style={s.emptyText}>No connectors configured.</p></div>
+          {connections.filter((c) => c.status !== 'revoked').length === 0 && !loading && (
+            <div style={s.section}>
+              <p style={s.emptyText}>No active connections to configure.</p>
+              <p style={{ ...s.emptyText, marginTop: '4px' }}>
+                Connect Gmail or Drive first (All Connectors tab), then return here to set exclusion rules.
+              </p>
+            </div>
           )}
           {connections.filter((c) => c.status !== 'revoked').map((c) => {
             const edit = exclusionEdits[c.id]
@@ -472,4 +487,11 @@ const s: Record<string, React.CSSProperties> = {
   },
   savedText: { fontSize: '13px', color: '#15803d', fontWeight: 500 },
   saveError: { fontSize: '13px', color: '#b91c1c' },
+  addRow: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' as const },
+  addBtns: { display: 'flex', gap: '8px', flexShrink: 0 },
+  addBtn: {
+    padding: '6px 14px', fontSize: '13px', backgroundColor: '#111', color: '#fff',
+    borderRadius: '4px', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' as const,
+  },
+  addNote: { fontSize: '12px', color: '#9ca3af', margin: '0 0 16px' },
 }
