@@ -16,7 +16,8 @@ export async function PATCH(req: NextRequest) {
   }
 
   const now = new Date().toISOString()
-  const newValue = body.budget_usd === null || body.budget_usd === undefined ? null : body.budget_usd
+  // Store 0 to represent "no limit" — system_config.value is NOT NULL so we can't store SQL null
+  const newValue = body.budget_usd === null || body.budget_usd === undefined ? 0 : body.budget_usd
 
   const { error } = await serviceClient
     .from('system_config')

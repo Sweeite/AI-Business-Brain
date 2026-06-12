@@ -189,7 +189,8 @@ export async function GET(req: NextRequest) {
   const configRows = (configRes.data ?? []) as ConfigRow[]
   const configMap = new Map(configRows.map((r) => [r.key, r.value]))
   const rawBudget = configMap.get('cost_budget_usd')
-  const budgetUsd = rawBudget === null || rawBudget === undefined ? null : (rawBudget as number)
+  // 0 means disabled (stored when user clears the field); null/undefined means row missing
+  const budgetUsd = (!rawBudget || (rawBudget as number) <= 0) ? null : (rawBudget as number)
   const rawThreshold = configMap.get('cost_alert_threshold_pct')
   const alertThresholdPct = typeof rawThreshold === 'number' ? rawThreshold : 80
 
